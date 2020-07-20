@@ -1,0 +1,1051 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://xiaoxie110.github.io</id>
+    <title>Gridea</title>
+    <updated>2020-07-20T04:46:18.646Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://xiaoxie110.github.io"/>
+    <link rel="self" href="https://xiaoxie110.github.io/atom.xml"/>
+    <subtitle>温故而知新</subtitle>
+    <logo>https://xiaoxie110.github.io/images/avatar.png</logo>
+    <icon>https://xiaoxie110.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2020, Gridea</rights>
+    <entry>
+        <title type="html"><![CDATA[Laravel学习-请求类 Request]]></title>
+        <id>https://xiaoxie110.github.io/laravel-xue-xi-qing-qiu-lei-request/</id>
+        <link href="https://xiaoxie110.github.io/laravel-xue-xi-qing-qiu-lei-request/">
+        </link>
+        <updated>2020-07-20T02:40:22.000Z</updated>
+        <content type="html"><![CDATA[<h4 id="laravel-实现http请求原理">laravel 实现HTTP请求原理</h4>
+<p>Web 服务器对 HTTP 请求的处理流程：在某个端口监听请求，请求进入后运行程序，然后将程序运行结果以响应的形式发送出去。</p>
+<p>基于 Laravel 框架构建的 Web 应用处理 HTTP 请求都会被转发到单入口文件 public/index.php，处理 HTTP 请求的核心代码如下</p>
+<pre><code>// 从服务容器中解析处理 HTTP 请求的 Kernel 实例
+$kernel = $app-&gt;make(Illuminate\Contracts\Http\Kernel::class);
+
+// 处理 HTTP 请求的核心代码
+$response = $kernel-&gt;handle(
+    $request = Illuminate\Http\Request::capture()
+);
+
+// 发送响应
+$response-&gt;send();
+
+// 终止程序，做一些善后及清理工作
+$kernel-&gt;terminate($request, $response);
+
+// 其中http的请求处理核心方法 App\Http\Kernel
+
+// 启动类,加载环境变量和全局配置、配置异常处理逻辑、注册门面和服务提供者、以及执行所有已注册服务提供者的 boot 方法
+public function bootstrap();
+// http请求处理 Illuminate\Foundation\Http\Kernel sendRequestThroughRouter()方法
+/* sendRequestThroughRouter 代码如下
+全局中间件都校验通过才会将请求分发到路由器进行处理，路由器会将请求 URL 路径与应用注册的所有路由进行匹配，如果有匹配的路由，则先收集该路由所分配的所有路由中间件，通过这些路由中间件对请求进行过滤，所有路由中间件校验通过才会运行对应的匿名函数或控制器方法，执行相应的请求处理逻辑，最后准备好待发送给客户端的响应
+return (new Pipeline($this-&gt;app))
+            -&gt;send($request)
+            -&gt;through($this-&gt;app-&gt;shouldSkipMiddleware() ? [] : $this-&gt;middleware)
+            -&gt;then($this-&gt;dispatchToRouter());
+*/
+public function handle($request);
+// 返回结果
+public function terminate($request, $response);
+</code></pre>
+<p>在上面这段程序中，首先会创建一个 Application 实例，作为全局的服务容器，然后将处理请求的核心类 Kernel 实现实例绑定到该容器中，以便后续通过它处理 HTTP 请求。我们通过服务器捕获请求并将其传递给 Kernel 实例进行处理，处理结果是准备好的响应实例，调用该响应实例的 send() 方法即可将其发送给发起请求的客户端。最后，我们执行 Kernel 实例上的 terminate() 终止程序，退出脚本。</p>
+<h4 id="request-底层实现">Request 底层实现</h4>
+<blockquote>
+<p>Laravel 框架中，需要通过 Request 对象来获取用户请求信息，该对象引用的完整类名是  Illuminate\Http\Request，而该请求类又继承自 Symfony 的 Symfony\Component\HttpFoundation\Request<br>
+请求入口 index.php</p>
+</blockquote>
+<pre><code>// capture 方法会调用 Symfony Request 对象的底层方法进行一些初始化设置，并将请求数据赋值给 Request 对象实例：
+public static function capture()
+{
+    static::enableHttpMethodParameterOverride();
+    return static::createFromBase(SymfonyRequest::createFromGlobals());
+}
+
+
+
+//常见request方法
+method()：返回当前请求方式，如 GET/POST/PUT/DELETE 等；
+path()：返回当前请求路径（不包含域名），如访问 https://xueyuanjun.com/post/9804.html 返回 post/9804.html；
+url()：返回完整请求URL（包含域名）；
+is()：通过传入参数作为模式字符串与当前请求URL进行模式匹配，看请求URL中是否包含给定模式字符串；
+ip()：返回用户 IP 地址；
+header()：通过传入参数获取对应的请求头信息，为空则返回所有请求头；
+server()：获取 $_SERVER 中的数据，用法和 header() 方法一样；
+secure()：是否通过 HTTPS 访问；
+pjax()：是否通过 Pjax 访问；
+bearerToken()：从请求头中获取 Bearer Token 信息。
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Laravel学习-cache缓存]]></title>
+        <id>https://xiaoxie110.github.io/laravel-xue-xi-cache-huan-cun/</id>
+        <link href="https://xiaoxie110.github.io/laravel-xue-xi-cache-huan-cun/">
+        </link>
+        <updated>2020-06-20T13:27:10.000Z</updated>
+        <content type="html"><![CDATA[<p><a href="https://github.com/xiaoxie110/laravel/blob/master/vendor/laravel/framework/src/Illuminate/Cache/Repository.php">Illuminate/Cache/Repository.php</a><br>
+<a href="https://github.com/xiaoxie110/laravel/blob/master/vendor/laravel/framework/src/Illuminate/Cache/CacheManager.php">Illuminate/Cache/CacheManager.php</a></p>
+<h4 id="配置">配置</h4>
+<blockquote>
+<p>Laravel 支持多种缓存系统, 并提供了统一的api接口，支持以下几种缓存模式，默认为file。默认的缓存配置文件在 config/cache.php</p>
+</blockquote>
+<pre><code class="language-PHP"> 'stores' =&gt; [
+       //APC缓存，APC是PHP的一个扩展，可选PHP缓存。它提供了缓存和优化PHP的中间代码的框架。 APC的缓存分两部分:系统缓存和用户数据缓存 https://www.php.net/manual/zh/book.apc.php
+        'apc' =&gt; [
+            'driver' =&gt; 'apc',
+        ],
+        //数组缓存驱动（array）往往仅仅用于测试，好处是不会持久化，只会在一次PHP脚本执行的生命周期内有效
+        'array' =&gt; [
+            'driver' =&gt; 'array',
+            'serialize' =&gt; false,
+        ],
+        // 数据库缓存驱动（database）将缓存数据存储到数据库中，使用之前需要在数据库中新建一张表用于存放缓存项，该表表结构可定义如下
+        'database' =&gt; [
+            'driver' =&gt; 'database',
+            'table' =&gt; 'cache',
+            'connection' =&gt; null,
+        ],
+        // 文件缓存驱动（file）往往只用于本地开发测试，因为文件缓存将缓存存储到文件中，读取时从硬盘读取，性能自然不及基于内存的缓存系统如APC或Memcached以及Redis。
+        'file' =&gt; [
+            'driver' =&gt; 'file',
+            'path' =&gt; storage_path('framework/cache/data'),
+        ],
+        // （memcached）缓存驱动基于Memcached，是基于内存的分布式缓存系统；读写性能优异，特别是高并发时和文件缓存比有明显优势；支持集群，并且是自动管理负载均衡。
+        'memcached' =&gt; [
+            'driver' =&gt; 'memcached',
+            'persistent_id' =&gt; env('MEMCACHED_PERSISTENT_ID'),
+            'sasl' =&gt; [
+                env('MEMCACHED_USERNAME'),
+                env('MEMCACHED_PASSWORD'),
+            ],
+            'options' =&gt; [
+                // Memcached::OPT_CONNECT_TIMEOUT =&gt; 2000,
+            ],
+            'servers' =&gt; [
+                [
+                    'host' =&gt; env('MEMCACHED_HOST', '127.0.0.1'),
+                    'port' =&gt; env('MEMCACHED_PORT', 11211),
+                    'weight' =&gt; 100,
+                ],
+            ],
+        ],
+        //Redis 是一个开源的，高级键值对存储数据库。由于它包含 字符串，哈希，列表，集合，和 有序集合 这些数据类型
+        'redis' =&gt; [
+            'driver' =&gt; 'redis',
+            'connection' =&gt; 'cache',
+        ],
+        // 云数据库 Amazon DynamoDB 是一项快速灵活的 NoSQL云数据库服务,它是完全托管的数据库
+        'dynamodb' =&gt; [
+            'driver' =&gt; 'dynamodb',
+            'key' =&gt; env('AWS_ACCESS_KEY_ID'),
+            'secret' =&gt; env('AWS_SECRET_ACCESS_KEY'),
+            'region' =&gt; env('AWS_DEFAULT_REGION', 'us-east-1'),
+            'table' =&gt; env('DYNAMODB_CACHE_TABLE', 'cache'),
+            'endpoint' =&gt; env('DYNAMODB_ENDPOINT'),
+        ],
+</code></pre>
+<h4 id="常用方法">常用方法</h4>
+<h5 id="has">has()</h5>
+<blockquote>
+<p>has($key) 判断缓存中是否存在该键对应的缓存，missing()相反</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; use Illuminate\Support\Facades\Cache;
+&gt;&gt;&gt; Cache::put('key',1);
+&gt;&gt;&gt; Cache::has('key');
+=&gt; true
+&gt;&gt;&gt; Cache::has('key2');
+=&gt; false
+</code></pre>
+<h5 id="get">get()</h5>
+<blockquote>
+<p>get($key, <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>d</mi><mi>e</mi><mi>f</mi><mi>a</mi><mi>u</mi><mi>l</mi><mi>t</mi><mo>=</mo><mi>n</mi><mi>u</mi><mi>l</mi><mi>l</mi><mo>)</mo><mi mathvariant="normal">获</mi><mi mathvariant="normal">取</mi><mi mathvariant="normal">缓</mi><mi mathvariant="normal">存</mi><mi>k</mi><mi>e</mi><mi>y</mi><mi mathvariant="normal">对</mi><mi mathvariant="normal">应</mi><mi mathvariant="normal">的</mi><mi mathvariant="normal">值</mi><mi mathvariant="normal">，</mi></mrow><annotation encoding="application/x-tex">default = null) 获取缓存key对应的值，</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8888799999999999em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">d</span><span class="mord mathdefault">e</span><span class="mord mathdefault" style="margin-right:0.10764em;">f</span><span class="mord mathdefault">a</span><span class="mord mathdefault">u</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault">t</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">u</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mclose">)</span><span class="mord cjk_fallback">获</span><span class="mord cjk_fallback">取</span><span class="mord cjk_fallback">缓</span><span class="mord cjk_fallback">存</span><span class="mord mathdefault" style="margin-right:0.03148em;">k</span><span class="mord mathdefault">e</span><span class="mord mathdefault" style="margin-right:0.03588em;">y</span><span class="mord cjk_fallback">对</span><span class="mord cjk_fallback">应</span><span class="mord cjk_fallback">的</span><span class="mord cjk_fallback">值</span><span class="mord cjk_fallback">，</span></span></span></span>default可以传默认值，也可以使用函数,<br>
+many(array <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>k</mi><mi>e</mi><mi>y</mi><mi>s</mi><mo>)</mo><mi mathvariant="normal">，</mi><mi>g</mi><mi>e</mi><mi>t</mi><mi>M</mi><mi>u</mi><mi>l</mi><mi>t</mi><mi>i</mi><mi>p</mi><mi>l</mi><mi>e</mi><mo>(</mo></mrow><annotation encoding="application/x-tex">keys)，getMultiple(</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathdefault" style="margin-right:0.03148em;">k</span><span class="mord mathdefault">e</span><span class="mord mathdefault" style="margin-right:0.03588em;">y</span><span class="mord mathdefault">s</span><span class="mclose">)</span><span class="mord cjk_fallback">，</span><span class="mord mathdefault" style="margin-right:0.03588em;">g</span><span class="mord mathdefault">e</span><span class="mord mathdefault">t</span><span class="mord mathdefault" style="margin-right:0.10903em;">M</span><span class="mord mathdefault">u</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault">t</span><span class="mord mathdefault">i</span><span class="mord mathdefault">p</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault">e</span><span class="mopen">(</span></span></span></span>keys, $default = null)类似</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; Cache::get('key1');
+=&gt; null
+&gt;&gt;&gt; Cache::get('key1', 2);//默认值
+=&gt; 2
+&gt;&gt;&gt; Cache::get(['key','key1']);//可一次获取多个指定key
+=&gt; [
+     &quot;key&quot; =&gt; 1,
+     &quot;key1&quot; =&gt; null,
+   ]
+&gt;&gt;&gt; Cache::get('key1',function(){return 3;});
+=&gt; 3
+</code></pre>
+<h5 id="pull">pull()</h5>
+<blockquote>
+<p>pull($key, $default = null) 取回緩存key對應的值並移除</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; Cache::pull('key')
+=&gt; 1
+&gt;&gt;&gt; Cache::get('key')
+=&gt; null
+</code></pre>
+<h5 id="putadd">put()&amp;add()</h5>
+<blockquote>
+<p>put($key, $value, <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>t</mi><mi>t</mi><mi>l</mi><mo>=</mo><mi>n</mi><mi>u</mi><mi>l</mi><mi>l</mi><mo>)</mo><mo separator="true">;</mo><mi>a</mi><mi>d</mi><mi>d</mi><mo>(</mo></mrow><annotation encoding="application/x-tex">ttl = null);add(</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathdefault">t</span><span class="mord mathdefault">t</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">u</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mclose">)</span><span class="mpunct">;</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathdefault">a</span><span class="mord mathdefault">d</span><span class="mord mathdefault">d</span><span class="mopen">(</span></span></span></span>key, $value, $ttl = null) 存儲緩存 $ttl未过期时间，不传的forever</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; Cache::put('key',[1,2,3,4],100)
+=&gt; true
+</code></pre>
+<h5 id="incrementdecrement">increment()&amp;&amp;decrement()</h5>
+<blockquote>
+<p>增加/减少緩存的值</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; Cache::add('key', 1)
+=&gt; true
+&gt;&gt;&gt; Cache::increment('key')
+=&gt; 2
+&gt;&gt;&gt; Cache::increment('key', 3)
+=&gt; 5
+&gt;&gt;&gt; Cache::decrement('key', 3)
+=&gt; 2
+</code></pre>
+<h5 id="remember">remember()</h5>
+<blockquote>
+<p>remember($key, $ttl, Closure $callback) 獲取指定key的緩存值，如果不存在，則存儲并返回</p>
+</blockquote>
+<pre><code class="language-PHP">Cache::remember('key', $minutes, function(){ return 'value' });
+Cache::rememberForever('key', function(){ return 'value' });
+</code></pre>
+<h5 id="forget">forget()</h5>
+<h4 id="cache源码解读">cache源码解读</h4>
+<p>Laravel 中常用 Cache Facade 来操作缓存, 对应的实际类是 Illuminate\Cache\CacheManager 缓存管理类(工厂).</p>
+<blockquote>
+<p>Cache::xxx()</p>
+</blockquote>
+<p>我们通过 CacheManager 类获取持有不同存储驱动的 Illuminate\Cache\Repository 类</p>
+<blockquote>
+<p>CacheManager::store($name = null)</p>
+</blockquote>
+<p>Repository 仓库类代理了实现存储驱动接口 Illuminate\Contracts\Cache\Store 的类实例.</p>
+<pre><code class="language-PHP">//在配置文件 config\app.php 中定义了 Cache 服务提供者
+'providers' =&gt; [
+        // ......
+        Illuminate\Cache\CacheServiceProvider::class,
+        // ......
+    ],
+    
+//Illuminate\Cache\CacheServiceProvider 文件
+    public function register()
+    {
+        $this-&gt;app-&gt;singleton('cache', function ($app) {
+            return new CacheManager($app);//实例化CacheManager
+        });
+        $this-&gt;app-&gt;singleton('cache.store', function ($app) {
+            return $app['cache']-&gt;driver();
+        });
+        $this-&gt;app-&gt;singleton('memcached.connector', function () {
+            return new MemcachedConnector;
+        });
+    }
+</code></pre>
+<h5 id="cachemanager">CacheManager</h5>
+<blockquote>
+<p>CacheManager 实现了 Illuminate\Contracts\Cache\Factory 接口, 实现了一个简单工厂, 传入存储驱动名, 返回对应的驱动实例.</p>
+</blockquote>
+<pre><code class="language-PHP">// Cache\Factory 工厂接口
+namespace Illuminate\Contracts\Cache;
+interface Factory
+{
+    /**
+     * Get a cache store instance by name.
+     *
+     * @param  string|null  $name
+     * @return \Illuminate\Contracts\Cache\Repository
+     */
+    public function store($name = null);
+}
+
+//CacheManager实现的简单工厂接口方法
+use Aws\DynamoDb\DynamoDbClient;
+use Closure;
+use Illuminate\Contracts\Cache\Factory as FactoryContract;
+use Illuminate\Contracts\Cache\Store;
+use Illuminate\Contracts\Events\Dispatcher as DispatcherContract;
+use Illuminate\Support\Arr;
+use InvalidArgumentException;
+
+/**
+ * @mixin \Illuminate\Contracts\Cache\Repository
+ */
+class CacheManager implements FactoryContract
+{
+    /**
+     * Get a cache store instance by name, wrapped in a repository.
+     * 实现接口方法
+     * @param  string|null  $name
+     * @return \Illuminate\Contracts\Cache\Repository
+     */
+    public function store($name = null)
+    {
+        $name = $name ?: $this-&gt;getDefaultDriver();
+
+        return $this-&gt;stores[$name] = $this-&gt;get($name);
+    }
+    ...
+    
+    /**
+     * Resolve the given store.
+     * 解析过程
+     * 自定义驱动: 查看是否有通过 CacheManager::extend(...)自定义的驱动
+     * Laravel提供的驱动: 查看是否存在 CacheManager::createXxxDriver(...)方法
+     * 这些方法都是实现了 Illuminate\Contracts\Cache\Repository 接口 
+     *
+     * @param  string  $name
+     * @return \Illuminate\Contracts\Cache\Repository
+     *
+     * @throws \InvalidArgumentException
+     */
+    protected function resolve($name)
+    {
+        $config = $this-&gt;getConfig($name);
+
+        if (is_null($config)) {
+            throw new InvalidArgumentException(&quot;Cache store [{$name}] is not defined.&quot;);
+        }
+
+        if (isset($this-&gt;customCreators[$config['driver']])) {
+            return $this-&gt;callCustomCreator($config);
+        } else {
+            $driverMethod = 'create'.ucfirst($config['driver']).'Driver';
+
+            if (method_exists($this, $driverMethod)) {
+                return $this-&gt;{$driverMethod}($config);
+            } else {
+                throw new InvalidArgumentException(&quot;Driver [{$config['driver']}] is not supported.&quot;);
+            }
+        }
+    }
+    
+
+    /**
+     * Register a custom driver creator Closure.
+     * 自定义一个驱动程序，$driver对应 config/cache.php 配置文件中的 driver 选项。 第二个参数是返回 Illuminate\Cache\Repository 实例的闭包,相当于一个服务容器的实例
+     * @param  string  $driver
+     * @param  \Closure  $callback
+     * @return $this
+     */
+    public function extend($driver, Closure $callback)
+    {
+        $this-&gt;customCreators[$driver] = $callback-&gt;bindTo($this, $this);
+        return $this;
+    }
+
+    /**
+     * Dynamically call the default driver instance.
+     * 魔术方法 以便快速调用默认缓存驱动
+     *
+     * @param  string  $method
+     * @param  array  $parameters
+     * @return mixed
+     */
+    public function __call($method, $parameters)
+    {
+        return $this-&gt;store()-&gt;$method(...$parameters);
+    }
+</code></pre>
+<h5 id="repository">Repository</h5>
+<blockquote>
+<p>Illuminate\Contracts\Cache\Repository 接口，Repository 是一个符合 PSR-16: Common Interface for Caching Libraries 规范的缓存仓库类, 其在Laravel相应的实现类: Illuminate\Cache\Repository,其实现了代理模式, 具体的实现是交由 Illuminate\Contracts\Cache\Store 来处理（具体的store实现）, Repository 主要作用是<br>
+提供一些便捷操作 读取等操作<br>
+Event 事件触发, 包括缓存命中/未命中、写入/删除键值</p>
+</blockquote>
+<h5 id="store">Store</h5>
+<blockquote>
+<p>Illuminate\Contracts\Cache 缓存驱动是实际处理缓存如何写入/读取/删除的类，具体的实现类有：</p>
+</blockquote>
+<pre><code>- ApcStore 
+- ArrayStore 
+- NullStore 
+- DatabaseStore 
+- FileStore 
+- MemcachedStore
+- RedisStore 
+- DynamoDbStore
+</code></pre>
+<pre><code class="language-PHP">namespace Illuminate\Contracts\Cache;
+interface Store
+{
+    public function get($key);
+    public function many(array $keys);
+    public function put($key, $value, $minutes);
+    public function putMany(array $values, $minutes);
+    public function increment($key, $value = 1);
+    public function decrement($key, $value = 1);
+    public function forever($key, $value);
+    public function forget($key);
+    public function flush();
+    public function getPrefix();
+}
+</code></pre>
+<h4 id="控制反转">控制反转</h4>
+<blockquote>
+<p>cache缓存使用了依赖注入，不反转的例子 Cache类依赖Redis, 每次使用缓存的时候我们都要new Redis()</p>
+</blockquote>
+<pre><code class="language-PHP">class Cache {
+    public function __construct()
+    {
+        $this-&gt;store = new Redis();
+    }
+}
+</code></pre>
+<blockquote>
+<p>反转使用容器, 由容器实例化对应的类，把控制权给了容器, 每个使用缓存的地方， 引入的都是容器， 使用make解析出 缓存对象</p>
+</blockquote>
+<pre><code class="language-PHP">class Cache {
+    public function __construct(Container $container)
+    {
+        $this-&gt;$container = $container;
+
+        $this-&gt;store = $this-&gt;container-&gt;make('cache');
+    }
+}
+</code></pre>
+<blockquote>
+<p>类似这样，绑定一个redis对象，使用的时候直接make()解析即可</p>
+</blockquote>
+<pre><code class="language-PHP">$this-&gt;app-&gt;singleton('cache', function ($app) {
+    return new Redis($app);
+});
+</code></pre>
+<blockquote>
+<p>如果不想用redis缓存了，不使用反转的时候，需要去每个使用缓存的类中修改，使用控制转只需要在绑定的时候修改即可，当然实际的应用中，我们也不必去修改绑定，我们可以类似的通过配置来实现快速切换，类似于工厂模式注入</p>
+</blockquote>
+<pre><code class="language-PHP">//CacheManager类中可以通过读取配置getConfig()
+$this-&gt;app-&gt;singleton('cache', function ($app) {
+    return new CacheManager($app);
+});
+//CacheManager直接解析为对应的缓存方法
+protected function resolve($name)
+    {
+        $config = $this-&gt;getConfig($name);
+
+        if (is_null($config)) {
+            throw new InvalidArgumentException(&quot;Cache store [{$name}] is not defined.&quot;);
+        }
+
+        if (isset($this-&gt;customCreators[$config['driver']])) {
+            return $this-&gt;callCustomCreator($config);
+        } else {
+            $driverMethod = 'create'.ucfirst($config['driver']).'Driver';
+
+            if (method_exists($this, $driverMethod)) {
+                return $this-&gt;{$driverMethod}($config);
+            } else {
+                throw new InvalidArgumentException(&quot;Driver [{$config['driver']}] is not supported.&quot;);
+            }
+        }
+    }
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[Laravel学习-Collect]]></title>
+        <id>https://xiaoxie110.github.io/laravel-collect/</id>
+        <link href="https://xiaoxie110.github.io/laravel-collect/">
+        </link>
+        <updated>2020-06-06T10:13:32.000Z</updated>
+        <content type="html"><![CDATA[<blockquote>
+<p>集合（Collection）Illuminate\Support\Collection 类了提供一个便捷的操作数组的封装。<a href="https://github.com/xiaoxie110/laravel/blob/master/vendor/laravel/framework/src/Illuminate/Support/Collection.php">Collection.php源码解读</a></p>
+</blockquote>
+<p>[TOC]</p>
+<h3 id="创建一个新的集合">创建一个新的集合</h3>
+<pre><code class="language-PHP">//collect 辅助函数会为指定的数组返回一个新的 Illuminate\Support\Collection 实例
+//构造函数
+public function __construct($items = [])
+{
+    //可以直接将多种类型转换为数组 Laravel Eloquent ORM 也以集合的形式返回数据
+    $this-&gt;items = $this-&gt;getArrayableItems($items);
+}
+// 创建一个新的集合
+$newCollection = collect([1, 2, 3, 4, 5]);
+</code></pre>
+<h3 id="静态函数-times">静态函数 times()</h3>
+<pre><code class="language-PHP">静态 times 方法通过调用给定次数的回调函数来创建新集合：
+
+public static function times($number, callable $callback = null)
+{
+    if ($number &lt; 1) {
+        return new static;
+    }
+    if (is_null($callback)) {// 回调函数为空，直接返回range()
+        return new static(range(1, $number));
+    }
+    return (new static(range(1, $number)))-&gt;map($callback);//给定次数调用回调函数
+}
+// 基本用法
+&gt; Illuminate\Support\Collection::times(10, function ($number) {
+    return $number * 9;
+})all();
+=&gt; [9, 18, 27, 36, 45, 54, 63, 72, 81, 90]
+
+// 回调函数为空，直接返回range()
+&gt; Illuminate\Support\Collection::times(2)-&gt;all();
+=&gt; [1,2,]
+</code></pre>
+<h3 id="懶集合-lazycollection">懶集合 LazyCollection</h3>
+<blockquote>
+<p>LazyCollection 类利用了PHP的生成器来在保持低内存使用率的同时使用非常大的数据集 关键字（yield）。</p>
+</blockquote>
+<pre><code class="language-PHP">use App\LogEntry;
+use Illuminate\Support\LazyCollection;
+
+LazyCollection::make(function () {
+    $handle = fopen('log.txt', 'r');
+    while (($line = fgets($handle)) !== false) {
+        yield $line;
+    }
+})-&gt;chunk(4)-&gt;map(function ($lines) {
+    return LogEntry::fromLines($lines);
+})-&gt;each(function (LogEntry $logEntry) {
+    // Process the log entry...
+});
+</code></pre>
+<h3 id="基本数据处理">基本数据处理</h3>
+<h4 id="avg">avg()</h4>
+<blockquote>
+<p>avg($callback = null) 集合平均值，支持回调函数</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般用法
+&gt;&gt;&gt; collect([1, 1, 2, 4])-&gt;avg();
+=&gt; 2
+
+// 指定键
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 20], ['foo' =&gt; 40]])-&gt;avg('foo')
+=&gt; 20
+
+// 回调函数
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 20], ['foo' =&gt; 40]])-&gt;avg(function($val){return $val['foo']/10;});
+=&gt; 2.3333333333333
+</code></pre>
+<h4 id="median">median()</h4>
+<blockquote>
+<p>median($key = null) 集合中位数，可以指定键</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般用法
+&gt;&gt;&gt; collect([1, 1, 2, 4])-&gt;median();
+=&gt; 1.5
+
+// 指定键中位数
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 20], ['foo' =&gt; 40]])-&gt;median('foo');
+=&gt; 15
+</code></pre>
+<h4 id="mode">mode()</h4>
+<blockquote>
+<p>mode($key = null) 集合众数 指定键的众数[一组数据中出现次数最多的数值，有可能是多个]</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般用法
+&gt;&gt;&gt; collect([1, 1, 2, 4])-&gt;mode();
+=&gt; [1]
+
+// 指定键众数
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 20], ['foo' =&gt; 20], ['foo' =&gt; 40]])-&gt;mode('foo');
+=&gt; [10,20]
+</code></pre>
+<h4 id="collapse">collapse()</h4>
+<blockquote>
+<p>一个多个一维数组集合组装为单个一维数组集合</p>
+</blockquote>
+<pre><code class="language-PHP">// 多个一维数组的值 array_merege
+&gt;&gt;&gt; collect([[1, 2, 3], [4, 5, 6], [7, 8, 9]])-&gt;collapse()-&gt;all()
+=&gt; [1,2,3,4,5,6,7,8,9]
+// 不适用多维数组
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 20], ['foo' =&gt; 20], ['foo' =&gt; 40]])-&gt;collapse()-&gt;all()
+=&gt; [&quot;foo&quot; =&gt; 40]
+&gt;&gt;&gt;
+</code></pre>
+<h4 id="contains">contains()</h4>
+<blockquote>
+<p>contains($key, $operator = null, $value = null) 方法检查集合有否包含指定的元素<br>
+contains 方法用 “松散” 比较检查元素值，用 containsStrict 方法使用 “严格” 比较过滤。</p>
+</blockquote>
+<pre><code class="language-PHP">// 单个数值或者回調函數判断
+&gt;&gt;&gt; collect([1,2,3,4])-&gt;contains(1)
+=&gt; true
+&gt;&gt;&gt; collect([['foo' =&gt; 10],['foo' =&gt; 20]])-&gt;contains(function($val){ return $val['foo'] &gt; 20 ;});
+=&gt; true
+
+// 数组，键值对
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 40]])-&gt;contains(['foo' =&gt; 10])
+=&gt; true
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 40]])-&gt;contains('foo',10)
+=&gt; true
+// 支持多種比較查詢 == &lt;&gt; &gt; &lt; !== 等等
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 40]])-&gt;contains('foo', '&gt;', 10)
+=&gt; true
+</code></pre>
+<h4 id="crossjoin">crossJoin()</h4>
+<blockquote>
+<p>crossJoin(...$lists)  方法交叉连接指定数组或集合的值，返回所有可能排列的笛卡尔积</p>
+</blockquote>
+<pre><code class="language-PHP">// 数组循环迭代，每次每个集合中取一个 类似于 An1*M 
+&gt;&gt;&gt; collect([1,2])-&gt;crossJoin([3,4])-&gt;all()
+=&gt; [
+     [1,3],
+     [1,4],
+     [2,3],
+     [2,4],
+   ]
+&gt;&gt;&gt;
+
+</code></pre>
+<h4 id="diff">diff()</h4>
+<blockquote>
+<p>数组中array_diff()方法，本函数只检查了多维数组中的一维</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect([1,2])-&gt;diff([1,2,3,4])-&gt;all()
+=&gt; []
+&gt;&gt;&gt; collect([1,2,5])-&gt;diff([1,2,3,4])-&gt;all()
+=&gt; [2 =&gt; 5]
+</code></pre>
+<h4 id="diffusing">diffUsing()</h4>
+<h4 id="diffassoc">diffAssoc()</h4>
+<h4 id="diffassocusing">diffAssocUsing()</h4>
+<h4 id="diffkeys">diffKeys()</h4>
+<h4 id="diffkeysusing">diffKeysUsing()</h4>
+<h4 id="duplicates">duplicates()</h4>
+<blockquote>
+<p>duplicates($callback = null, $strict = false) 从集合中检索并返回重复的值</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般用法
+&gt;&gt;&gt; collect(['a', 'b', 'a', 'c', 'b'])-&gt;duplicates()-&gt;all()
+=&gt; [2 =&gt; &quot;a&quot;, 4 =&gt; &quot;b&quot;]
+// 如果集合包含数组或对象，则可以需要检查重复值的属性的键
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 40]])-&gt;duplicates('foo')-&gt;all();
+=&gt; [1 =&gt; 10]
+</code></pre>
+<h4 id="duplicatesstrict">duplicatesStrict()</h4>
+<h4 id="except">except()</h4>
+<blockquote>
+<p>except($keys) 方法返回集合中除了指定键之外的所有集合项：</p>
+</blockquote>
+<pre><code class="language-PHP">// 参数可传单个字段，也可以传枚举类型的数组
+&gt;&gt;&gt; collect(['foo' =&gt; 10, 'foo2' =&gt; 10, 'foo' =&gt; 40])-&gt;except('foo')-&gt;all();
+=&gt; [&quot;foo2&quot; =&gt; 10]
+&gt;&gt;&gt; collect(['foo' =&gt; 10, 'foo2' =&gt; 10, 'foo3' =&gt; 40])-&gt;except(['foo','foo2'])-&gt;all();
+=&gt; [&quot;foo3&quot; =&gt; 10]
+</code></pre>
+<h4 id="filter">filter()</h4>
+<blockquote>
+<p>用给定的回调函数过滤集合，只保留那些通过指定条件测试的集合项;如果没有提供回调函数，集合中所有返回 false 的元素都会被移除</p>
+</blockquote>
+<pre><code class="language-PHP">// 指定回调函数，过滤集合
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 40]])-&gt;filter(function($val){ return $val['foo'] &gt; 20;})-&gt;all();
+=&gt; [
+     2 =&gt; [
+       &quot;foo&quot; =&gt; 40,
+     ],
+   ]
+// 没有回调函数，直接过滤false array_filter()
+&gt;&gt;&gt; collect([1, 2, 3, null, false, '', 0, []])-&gt;filter()-&gt;all()
+=&gt; [1, 2, 3]
+</code></pre>
+<h4 id="first">first()</h4>
+<blockquote>
+<p>first(callable $callback = null, <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>d</mi><mi>e</mi><mi>f</mi><mi>a</mi><mi>u</mi><mi>l</mi><mi>t</mi><mo>=</mo><mi>n</mi><mi>u</mi><mi>l</mi><mi>l</mi><mo>)</mo><mi mathvariant="normal">从</mi><mi mathvariant="normal">集</mi><mi mathvariant="normal">合</mi><mi mathvariant="normal">中</mi><mi mathvariant="normal">返</mi><mi mathvariant="normal">回</mi><mi mathvariant="normal">符</mi><mi mathvariant="normal">合</mi><mi mathvariant="normal">条</mi><mi mathvariant="normal">件</mi><mi mathvariant="normal">的</mi><mi mathvariant="normal">第</mi><mi mathvariant="normal">一</mi><mi mathvariant="normal">个</mi><mi mathvariant="normal">值</mi><mi mathvariant="normal">，</mi><mi mathvariant="normal">支</mi><mi mathvariant="normal">持</mi><mi mathvariant="normal">回</mi><mi mathvariant="normal">调</mi><mi mathvariant="normal">函</mi><mi mathvariant="normal">数</mi><mi mathvariant="normal">；</mi><mi mathvariant="normal">可</mi><mi mathvariant="normal">设</mi><mi mathvariant="normal">置</mi><mi mathvariant="normal">默</mi><mi mathvariant="normal">认</mi><mi mathvariant="normal">值</mi></mrow><annotation encoding="application/x-tex">default = null) 从集合中返回符合条件的第一个值，支持回调函数；可设置默认值</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8888799999999999em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">d</span><span class="mord mathdefault">e</span><span class="mord mathdefault" style="margin-right:0.10764em;">f</span><span class="mord mathdefault">a</span><span class="mord mathdefault">u</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault">t</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">u</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mclose">)</span><span class="mord cjk_fallback">从</span><span class="mord cjk_fallback">集</span><span class="mord cjk_fallback">合</span><span class="mord cjk_fallback">中</span><span class="mord cjk_fallback">返</span><span class="mord cjk_fallback">回</span><span class="mord cjk_fallback">符</span><span class="mord cjk_fallback">合</span><span class="mord cjk_fallback">条</span><span class="mord cjk_fallback">件</span><span class="mord cjk_fallback">的</span><span class="mord cjk_fallback">第</span><span class="mord cjk_fallback">一</span><span class="mord cjk_fallback">个</span><span class="mord cjk_fallback">值</span><span class="mord cjk_fallback">，</span><span class="mord cjk_fallback">支</span><span class="mord cjk_fallback">持</span><span class="mord cjk_fallback">回</span><span class="mord cjk_fallback">调</span><span class="mord cjk_fallback">函</span><span class="mord cjk_fallback">数</span><span class="mord cjk_fallback">；</span><span class="mord cjk_fallback">可</span><span class="mord cjk_fallback">设</span><span class="mord cjk_fallback">置</span><span class="mord cjk_fallback">默</span><span class="mord cjk_fallback">认</span><span class="mord cjk_fallback">值</span></span></span></span>default</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect()-&gt;first();
+=&gt; null
+&gt;&gt;&gt; collect([1, 2, 3, 4])-&gt;first();
+=&gt; 1
+&gt;&gt;&gt; collect([1, 2, 3, 4])-&gt;first(function($val){ return $val &gt; 30;});
+=&gt; null
+&gt;&gt;&gt; collect([1, 2, 3, 4])-&gt;first(function($val){ return $val &gt; 3;});
+=&gt; 4
+&gt;&gt;&gt; collect([1, 2, 3, 4])-&gt;first(function($val){ return $val &gt; 5;}, 5);
+=&gt; 5
+</code></pre>
+<h4 id="flatten">flatten()</h4>
+<blockquote>
+<p>flatten(<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>d</mi><mi>e</mi><mi>p</mi><mi>t</mi><mi>h</mi><mo>=</mo><mi>I</mi><mi>N</mi><mi>F</mi><mo>)</mo><mi>f</mi><mi>l</mi><mi>a</mi><mi>t</mi><mi>t</mi><mi>e</mi><mi>n</mi><mo>(</mo></mrow><annotation encoding="application/x-tex">depth = INF) flatten(</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8888799999999999em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">d</span><span class="mord mathdefault">e</span><span class="mord mathdefault">p</span><span class="mord mathdefault">t</span><span class="mord mathdefault">h</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathdefault" style="margin-right:0.07847em;">I</span><span class="mord mathdefault" style="margin-right:0.10903em;">N</span><span class="mord mathdefault" style="margin-right:0.13889em;">F</span><span class="mclose">)</span><span class="mord mathdefault" style="margin-right:0.10764em;">f</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault">a</span><span class="mord mathdefault">t</span><span class="mord mathdefault">t</span><span class="mord mathdefault">e</span><span class="mord mathdefault">n</span><span class="mopen">(</span></span></span></span>depth = INF) 将多维集合转换为一维集合，其中 $depth 为转换深度</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 40]])-&gt;flatten()-&gt;all();
+=&gt; [10,10,40]
+&gt;&gt;&gt; collect([1=&gt;'a', 2=&gt;['b'=&gt;['c' =&gt; 'd']]])-&gt;flatten(2)-&gt;all()
+=&gt; [&quot;a&quot;,&quot;d&quot;,]
+</code></pre>
+<h4 id="flip">flip()</h4>
+<h4 id="forget">forget()</h4>
+<blockquote>
+<p>forget($keys) 通过指定的键来移除集合中对应的内容</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['foo' =&gt; 10, 'foo2' =&gt; 10, 'foo3' =&gt; 40])-&gt;forget(['foo','foo2'])-&gt;all();
+=&gt; [&quot;foo3&quot; =&gt; 40]
+</code></pre>
+<h4 id="get">get()</h4>
+<blockquote>
+<p>get($key, $default = null) 方法返回指定键的集合项，如果该键在集合中不存在，则返回 null；可传递默认参数default，该默认参数可为回调函数</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a' =&gt; 1])-&gt;get('a')
+=&gt; 1
+&gt;&gt;&gt; collect(['a' =&gt; 1])-&gt;get('b')
+=&gt; null
+&gt;&gt;&gt; collect(['a' =&gt; 1])-&gt;get('b', 11)
+=&gt; 11
+&gt;&gt;&gt; collect(['a' =&gt; 1])-&gt;get('b', function(){return 111;})
+=&gt; 111
+&gt;&gt;&gt;
+</code></pre>
+<h4 id="groupby">groupBy()</h4>
+<h4 id="keyby">keyBy()</h4>
+<blockquote>
+<p>方法以指定的键作为新集合的键。如果多个集合项具有相同的键，则只有最后一个集合项会显示在新集合中;支持对调函数</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般使用，直接传递某个键
+&gt;&gt;&gt; collect([[ 'a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;4]])-&gt;keyBy('a')-&gt;all()
+=&gt; [
+     1 =&gt; [&quot;a&quot; =&gt; 1,&quot;b&quot; =&gt; 2,],
+     3 =&gt; [&quot;a&quot; =&gt; 3,&quot;b&quot; =&gt; 4,],
+   ]
+// 回调函数返回的值会作为该集合的键   
+&gt;&gt;&gt; collect([[ 'a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;4]])-&gt;keyBy(function($item){return $item['a']+10;})-&gt;all()
+=&gt; [
+     11 =&gt; [&quot;a&quot; =&gt; 1,&quot;b&quot; =&gt; 2,],
+     13 =&gt; [&quot;a&quot; =&gt; 3,&quot;b&quot; =&gt; 4,],
+   ]
+</code></pre>
+<h4 id="has">has()</h4>
+<blockquote>
+<p>has($key) 判断集合中是否存在指定键,支持传入多个键 array_key_exists底层方法</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2, 'c'=&gt;3])-&gt;has('a')
+=&gt; true
+&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2, 'c'=&gt;3])-&gt;has(['a','b'])
+=&gt; true
+&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2, 'c'=&gt;3])-&gt;has(['a','b','d'])
+=&gt; false
+</code></pre>
+<h4 id="implode">implode</h4>
+<blockquote>
+<p>implode($value, $glue = null) 用于合并集合项</p>
+</blockquote>
+<pre><code class="language-PHP">// 集合中包含简单的字符串或数值
+&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2, 'c'=&gt;3])-&gt;implode('*')
+=&gt; &quot;1*2*3&quot;
+// 集合包含数组或对象
+&gt;&gt;&gt; collect([[ 'a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;4]])-&gt;implode('a', '**')
+=&gt; &quot;1**3&quot;
+</code></pre>
+<h4 id="intersect">intersect()</h4>
+<h4 id="intersectbykeys">intersectByKeys()</h4>
+<h4 id="isempty">isEmpty()</h4>
+<h4 id="join">join()</h4>
+<blockquote>
+<p>join($glue, $finalGlue = '') 将集合中的值用字符串连接</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a', 'b', 'c'])-&gt;join(', ');
+=&gt; 'a, b, c'
+&gt;&gt;&gt; collect(['a', 'b', 'c'])-&gt;join(', ', ', and ');
+=&gt; 'a, b, and c'
+&gt;&gt;&gt; collect(['a', 'b'])-&gt;join(', ', ' and ');
+=&gt; 'a and b'
+&gt;&gt;&gt; collect(['a'])-&gt;join(', ', ' and '); 
+=&gt; 'a'
+&gt;&gt;&gt; collect([])-&gt;join(', ', ' and '); 
+=&gt; ''
+</code></pre>
+<h4 id="keys">keys()</h4>
+<h4 id="last">last()</h4>
+<blockquote>
+<p>last() 返回集合中通过指定条件测试的最后一个元素</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般调用，直接返回最后有一个元素
+&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2, 'c'=&gt;3])-&gt;last();
+=&gt; 3
+// 回调函数，返回符合条件的最后一个元素
+&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2, 'c'=&gt;3])-&gt;last(function($val){return $val&lt;2;});
+=&gt; 1
+</code></pre>
+<h4 id="pluck">pluck()</h4>
+<blockquote>
+<p>pluck($value, $key = null) 方法可以获取集合中指定键对应的所有值</p>
+</blockquote>
+<pre><code class="language-PHP">// 指定键对应的所有值
+&gt;&gt;&gt; collect([[ 'a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;4]])-&gt;pluck('a')-&gt;all();
+=&gt; [1,3]
+// 指定生成集合的键
+&gt;&gt;&gt; collect([[ 'a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;4]])-&gt;pluck('a', 'b')-&gt;all();
+=&gt; [2 =&gt; 1, 4 =&gt; 3]
+// 如果存在重复的键，则最后一个匹配元素将被插入到弹出的集合中
+&gt;&gt;&gt; collect([['a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;2]])-&gt;pluck('a', 'b')-&gt;all();
+=&gt; [2 =&gt; 3]
+</code></pre>
+<h4 id="map">map()</h4>
+<blockquote>
+<p>map(callable $callback) 遍历集合并将每一个值传入给定的回调函数, 生成被修改过集合项的新集合</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect([[ 'a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;2]])-&gt;map(function($item, $key){ return $item['a'] * 2;})-&gt;all();
+=&gt; [2,6]
+</code></pre>
+<h4 id="maptodictionary">mapToDictionary()</h4>
+<h4 id="mapwithkeys">mapWithKeys()</h4>
+<blockquote>
+<p>遍历集合并将每个值传入给定的回调函数。将返回一个包含单个键 / 值对的关联数组</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect([[ 'a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;4]])-&gt;mapWithKeys(function($item){return [$item['a'] =&gt; $item['b']];})-&gt;all()
+=&gt; [
+     1 =&gt; 2,
+     3 =&gt; 4,
+   ]
+</code></pre>
+<h4 id="merge">merge()</h4>
+<blockquote>
+<p>方法将合并指定的数组或集合到原集合，如果给定的集合项的字符串键与原集合中的字符串键相匹配，则指定集合项的值将覆盖原集合的值 array_merge</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般使用
+&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2])-&gt;merge(['c' =&gt; 5])-&gt;all();
+=&gt; [
+     &quot;a&quot; =&gt; 1,
+     &quot;b&quot; =&gt; 2,
+     &quot;c&quot; =&gt; 5,
+   ]
+// 有覆盖
+&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2])-&gt;merge(['a' =&gt; 5])-&gt;all();
+=&gt; [
+     &quot;a&quot; =&gt; 5,
+     &quot;b&quot; =&gt; 2,
+   ]
+</code></pre>
+<h4 id="mergerecursive">mergeRecursive()</h4>
+<blockquote>
+<p>以递归的形式合并给定的数组或集合到原集合中 array_merge_recursive</p>
+</blockquote>
+<pre><code class="language-PHP">// 同一个键值的合并
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;mergeRecursive(['a' =&gt; 5])-&gt;all();
+=&gt; [&quot;a&quot; =&gt; [1,5,&quot;b&quot; =&gt; 2]
+&gt;&gt;&gt; collect([ 'a'=&gt;['c'=&gt;1],'b'=&gt;2])-&gt;mergeRecursive(['a' =&gt; 5])-&gt;all();
+=&gt; [&quot;a&quot; =&gt; [&quot;c&quot; =&gt; 1,0 =&gt; 5,],&quot;b&quot; =&gt; 2,]
+</code></pre>
+<h4 id="combine">combine()</h4>
+<blockquote>
+<p>将一个集合的值作为键，与另一个数组或集合的值进行结合 array_combine</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般使用
+&gt;&gt;&gt; collect(['a', 'b'])-&gt;combine([1,2])-&gt;all()
+=&gt; [
+     &quot;a&quot; =&gt; 1,
+     &quot;b&quot; =&gt; 2,
+   ]
+// 只能传递相等数量的集合
+&gt;&gt;&gt; collect(['a', 'b'])-&gt;combine([1,2,3])-&gt;all()
+PHP Warning:  array_combine(): Both parameters should have an equal number of elements in D:/dev/study/laravel/vendor/laravel/framework/src/Illuminate/Support/Collection.php on line 777
+=&gt; [
+     false,
+   ]
+</code></pre>
+<h4 id="union">union()</h4>
+<blockquote>
+<p>方法将给定数组添加到集合中。如果给定的数组含有与原集合一样的键，则首选原始集合的值,这点和merge相反</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a'=&gt;1, 'b'=&gt;2])-&gt;union(['a'=&gt;3,'d'=&gt;4])-&gt;all()
+=&gt; [
+     &quot;a&quot; =&gt; 1,
+     &quot;b&quot; =&gt; 2,
+     &quot;d&quot; =&gt; 4,
+   ]
+&gt;&gt;&gt; collect(['a'=&gt;1, 'b'=&gt;2])-&gt;merge(['a'=&gt;3,'d'=&gt;4])-&gt;all()
+=&gt; [
+     &quot;a&quot; =&gt; 3,
+     &quot;b&quot; =&gt; 2,
+     &quot;d&quot; =&gt; 4,
+   ]
+
+</code></pre>
+<h4 id="nth">nth()</h4>
+<h4 id="only">only()</h4>
+<blockquote>
+<p>返回集合中所有指定键的集合项</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a'=&gt;1, 'b'=&gt;2])-&gt;only('a')-&gt;all()
+=&gt; [
+     &quot;a&quot; =&gt; 1,
+   ]
+</code></pre>
+<h4 id="pop">pop()</h4>
+<h4 id="prepend">prepend()</h4>
+<blockquote>
+<p>prepend($value, $key = null) 将指定的值添加的集合的开头</p>
+</blockquote>
+<pre><code class="language-PHP">// 添加指定值到集合的开头
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;prepend('c')-&gt;all()
+=&gt; [
+     0 =&gt; &quot;c&quot;,
+     &quot;a&quot; =&gt; 1,
+     &quot;b&quot; =&gt; 2,
+   ]
+// 指定新增集合项的键   
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;prepend('c',1)-&gt;all()
+=&gt; [
+     1 =&gt; &quot;c&quot;,
+     &quot;a&quot; =&gt; 1,
+     &quot;b&quot; =&gt; 2,
+   ]
+</code></pre>
+<h4 id="push">push()</h4>
+<blockquote>
+<p>push($value) 添加一个值于集合末尾,只能插入一个值</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a','b'])-&gt;push('c','d')-&gt;all()
+=&gt; [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;]
+&gt;&gt;&gt; collect([1, 2, 3])-&gt;push(4, 5)-&gt;all();
+=&gt; [1, 2, 3, 4]
+</code></pre>
+<h4 id="concat">concat()</h4>
+<blockquote>
+<p>在集合的末端附加指定的数组或者集合</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect([1, 2, 3])-&gt;concat([4, 5])-&gt;all();
+=&gt; [1, 2, 3, 4, 5]
+</code></pre>
+<h4 id="pull">pull()</h4>
+<blockquote>
+<p>pull($key, $default = null) 指定键对应的值从集合中移除并返回,default为默认值</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;pull('a',0)
+=&gt; 1
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;pull('c',3)
+=&gt; 3
+</code></pre>
+<h4 id="put">put()</h4>
+<blockquote>
+<p>put($key, $value) 设定集合内指定键的值，如果不存在，则新增到末尾</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;put('c',3)-&gt;all()
+=&gt; [
+     &quot;a&quot; =&gt; 1,
+     &quot;b&quot; =&gt; 2,
+     &quot;c&quot; =&gt; 3,
+   ]
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;put('a',3)-&gt;all()
+=&gt; [
+     &quot;a&quot; =&gt; 3,
+     &quot;b&quot; =&gt; 2,
+   ]
+</code></pre>
+<h4 id="random">random</h4>
+<blockquote>
+<p>random(<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi><mi>u</mi><mi>m</mi><mi>b</mi><mi>e</mi><mi>r</mi><mo>=</mo><mi>n</mi><mi>u</mi><mi>l</mi><mi>l</mi><mo>)</mo><mi mathvariant="normal">集</mi><mi mathvariant="normal">合</mi><mi mathvariant="normal">中</mi><mi mathvariant="normal">返</mi><mi mathvariant="normal">回</mi><mi mathvariant="normal">一</mi><mi mathvariant="normal">个</mi><mi mathvariant="normal">随</mi><mi mathvariant="normal">机</mi><mi mathvariant="normal">项</mi><mo separator="true">,</mo></mrow><annotation encoding="application/x-tex">number = null) 集合中返回一个随机项,</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">u</span><span class="mord mathdefault">m</span><span class="mord mathdefault">b</span><span class="mord mathdefault">e</span><span class="mord mathdefault" style="margin-right:0.02778em;">r</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">u</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mclose">)</span><span class="mord cjk_fallback">集</span><span class="mord cjk_fallback">合</span><span class="mord cjk_fallback">中</span><span class="mord cjk_fallback">返</span><span class="mord cjk_fallback">回</span><span class="mord cjk_fallback">一</span><span class="mord cjk_fallback">个</span><span class="mord cjk_fallback">随</span><span class="mord cjk_fallback">机</span><span class="mord cjk_fallback">项</span><span class="mpunct">,</span></span></span></span>number不能大于集合的数量，否则报错</p>
+</blockquote>
+<pre><code class="language-PHP">// 默认返回一个
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;random()
+=&gt; 2
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;random(2)-&gt;all()
+=&gt; [
+     1,
+     2,
+   ]
+// 大于集合数量，报错   
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;random(3)-&gt;all()
+InvalidArgumentException with message 'You requested 3 items, but there are only 2 items available.'
+</code></pre>
+<h4 id="reduce">reduce</h4>
+<blockquote>
+<p>reduce(callable $callback, $initial = null) 将每次迭代的结果传递给下一次迭代，直到遍历完集合</p>
+</blockquote>
+<pre><code class="language-PHP">// 循环迭代 返回res
+&gt;&gt;&gt; collect([1, 2, 3])-&gt;reduce(function($res,$val){ return $res+$val;});
+=&gt; 6
+// res初始值
+&gt;&gt;&gt; collect([1, 2, 3])-&gt;reduce(function($res,$val){ return $res+$val;},10);
+=&gt; 16
+</code></pre>
+<h4 id="replace">replace</h4>
+<blockquote>
+<p>replace 方法类似于 merge，不仅可以覆盖匹配到的相同字符串键的集合项，而且也可以覆盖数字键的集合</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;replace(['b'=&gt;10])-&gt;all();
+=&gt; [
+     &quot;a&quot; =&gt; 1,
+     &quot;b&quot; =&gt; 10,
+   ]
+&gt;&gt;&gt; collect([1, 2, 3])-&gt;replace([1=&gt;10])-&gt;all();
+=&gt; [1, 10, 3]
+</code></pre>
+<h4 id="replacerecursive">replaceRecursive()</h4>
+<h4 id="reverse">reverse()</h4>
+<h4 id="search">search()</h4>
+<blockquote>
+<p>search($value, $strict = false) 集合的搜寻方法，搜索给定的值,返回键值</p>
+</blockquote>
+<pre><code class="language-PHP">// 搜寻指定的值
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;search('a');
+=&gt; false
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;search('1');
+=&gt; &quot;a&quot;
+// 指定严格模式
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;search('1',true);
+=&gt; false
+// 指定回调函数
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;search(function($item,$key){return $item &gt; 1;});
+=&gt; &quot;b&quot;
+</code></pre>
+<h4 id="shift">shift()</h4>
+<h4 id="shuffle">shuffle()</h4>
+<h4 id="skip">skip()</h4>
+<h4 id="slice">slice()</h4>
+<blockquote>
+<p>slice($offset, $length = null) 返回集合中给定索引开始后面的部分： array_slice()</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect([1, 2, 3, 4, 5, 6, 7])-&gt;slice(3)-&gt;all()
+=&gt; [
+     3 =&gt; 4,
+     4 =&gt; 5,
+     5 =&gt; 6,
+     6 =&gt; 7,
+   ]
+&gt;&gt;&gt; collect([1, 2, 3, 4, 5, 6, 7])-&gt;slice(2,2)-&gt;all()
+=&gt; [
+     2 =&gt; 3,
+     3 =&gt; 4,
+   ]
+</code></pre>
+<h4 id="split">split()</h4>
+<h4 id="chunk">chunk()</h4>
+<blockquote>
+<p>chunk($size) 集合分割成多个指定大小的较小集合</p>
+</blockquote>
+<h4 id="sort">sort()</h4>
+<h4 id="sortdesc">sortDesc()</h4>
+<h4 id="sortby">sortBy()</h4>
+<h4 id="sortbydesc">sortByDesc()</h4>
+<h4 id="sortkeys">sortKeys()</h4>
+<h4 id="sortkeysdesc">sortKeysDesc()</h4>
+<h4 id="splice">splice()</h4>
+<h4 id="take">take()</h4>
+<h4 id="takeuntil">takeUntil()</h4>
+<h4 id="takewhile">takeWhile()</h4>
+<h4 id="transform">transform()</h4>
+<blockquote>
+<p>transform(callable $callback) 方法会遍历整个集合，并对集合中的每项都会调用其回调函数,和map原理一致，但是该方法会改变原有集合</p>
+</blockquote>
+<pre><code class="language-PHP">// map不会改变原集合的值
+&gt;&gt;&gt; $a = collect([1,2,3,4,5]);
+&gt;&gt;&gt; $a-&gt;map(function($item,$key){return $item*2;})
+&gt;&gt;&gt; $a-&gt;all();
+=&gt; [1,2,3,4,5,]
+// transform改变原集合
+&gt;&gt;&gt; $a-&gt;transform(function($item,$key){return $item*2;})
+&gt;&gt;&gt; $a-&gt;all();
+=&gt; [2,4,6,8,10,]
+&gt;&gt;&gt;
+</code></pre>
+<h4 id="values">values()</h4>
+<h4 id="zip">zip()</h4>
+<h4 id="pad">pad()</h4>
+<h4 id="getiterator">getIterator()</h4>
+<h4 id="count">count()</h4>
+<h4 id="add">add()</h4>
+<h4 id="tobase">toBase()</h4>
+<blockquote>
+<p>基于当前集合返回一个新的集合</p>
+</blockquote>
+<h4 id="offsetexists">offsetExists()</h4>
+<h4 id="offsetget">offsetGet()</h4>
+<h4 id="offsetset">offsetSet()</h4>
+<h4 id="offsetunset">offsetUnset()</h4>
+]]></content>
+    </entry>
+</feed>

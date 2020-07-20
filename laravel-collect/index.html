@@ -1,0 +1,864 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Laravel学习-Collect | Gridea</title>
+<link rel="shortcut icon" href="https://xiaoxie110.github.io/favicon.ico?v=1595220375021">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://xiaoxie110.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Laravel学习-Collect | Gridea - Atom Feed" href="https://xiaoxie110.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="
+集合（Collection）Illuminate\Support\Collection 类了提供一个便捷的操作数组的封装。Collection.php源码解读
+
+[TOC]
+创建一个新的集合
+//collect 辅助函数会为指定的数组返回..." />
+    <meta name="keywords" content="laravel,collect" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://xiaoxie110.github.io">
+  <img class="avatar" src="https://xiaoxie110.github.io/images/avatar.png?v=1595220375021" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Laravel学习-Collect
+            </h2>
+            <div class="post-info">
+              <span>
+                2020-06-06
+              </span>
+              <span>
+                20 min read
+              </span>
+              
+                <a href="https://xiaoxie110.github.io/-83BydD-k/" class="post-tag">
+                  # laravel
+                </a>
+              
+                <a href="https://xiaoxie110.github.io/4vrsv0q_Rt/" class="post-tag">
+                  # collect
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <blockquote>
+<p>集合（Collection）Illuminate\Support\Collection 类了提供一个便捷的操作数组的封装。<a href="https://github.com/xiaoxie110/laravel/blob/master/vendor/laravel/framework/src/Illuminate/Support/Collection.php">Collection.php源码解读</a></p>
+</blockquote>
+<p>[TOC]</p>
+<h3 id="创建一个新的集合">创建一个新的集合</h3>
+<pre><code class="language-PHP">//collect 辅助函数会为指定的数组返回一个新的 Illuminate\Support\Collection 实例
+//构造函数
+public function __construct($items = [])
+{
+    //可以直接将多种类型转换为数组 Laravel Eloquent ORM 也以集合的形式返回数据
+    $this-&gt;items = $this-&gt;getArrayableItems($items);
+}
+// 创建一个新的集合
+$newCollection = collect([1, 2, 3, 4, 5]);
+</code></pre>
+<h3 id="静态函数-times">静态函数 times()</h3>
+<pre><code class="language-PHP">静态 times 方法通过调用给定次数的回调函数来创建新集合：
+
+public static function times($number, callable $callback = null)
+{
+    if ($number &lt; 1) {
+        return new static;
+    }
+    if (is_null($callback)) {// 回调函数为空，直接返回range()
+        return new static(range(1, $number));
+    }
+    return (new static(range(1, $number)))-&gt;map($callback);//给定次数调用回调函数
+}
+// 基本用法
+&gt; Illuminate\Support\Collection::times(10, function ($number) {
+    return $number * 9;
+})all();
+=&gt; [9, 18, 27, 36, 45, 54, 63, 72, 81, 90]
+
+// 回调函数为空，直接返回range()
+&gt; Illuminate\Support\Collection::times(2)-&gt;all();
+=&gt; [1,2,]
+</code></pre>
+<h3 id="懶集合-lazycollection">懶集合 LazyCollection</h3>
+<blockquote>
+<p>LazyCollection 类利用了PHP的生成器来在保持低内存使用率的同时使用非常大的数据集 关键字（yield）。</p>
+</blockquote>
+<pre><code class="language-PHP">use App\LogEntry;
+use Illuminate\Support\LazyCollection;
+
+LazyCollection::make(function () {
+    $handle = fopen('log.txt', 'r');
+    while (($line = fgets($handle)) !== false) {
+        yield $line;
+    }
+})-&gt;chunk(4)-&gt;map(function ($lines) {
+    return LogEntry::fromLines($lines);
+})-&gt;each(function (LogEntry $logEntry) {
+    // Process the log entry...
+});
+</code></pre>
+<h3 id="基本数据处理">基本数据处理</h3>
+<h4 id="avg">avg()</h4>
+<blockquote>
+<p>avg($callback = null) 集合平均值，支持回调函数</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般用法
+&gt;&gt;&gt; collect([1, 1, 2, 4])-&gt;avg();
+=&gt; 2
+
+// 指定键
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 20], ['foo' =&gt; 40]])-&gt;avg('foo')
+=&gt; 20
+
+// 回调函数
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 20], ['foo' =&gt; 40]])-&gt;avg(function($val){return $val['foo']/10;});
+=&gt; 2.3333333333333
+</code></pre>
+<h4 id="median">median()</h4>
+<blockquote>
+<p>median($key = null) 集合中位数，可以指定键</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般用法
+&gt;&gt;&gt; collect([1, 1, 2, 4])-&gt;median();
+=&gt; 1.5
+
+// 指定键中位数
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 20], ['foo' =&gt; 40]])-&gt;median('foo');
+=&gt; 15
+</code></pre>
+<h4 id="mode">mode()</h4>
+<blockquote>
+<p>mode($key = null) 集合众数 指定键的众数[一组数据中出现次数最多的数值，有可能是多个]</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般用法
+&gt;&gt;&gt; collect([1, 1, 2, 4])-&gt;mode();
+=&gt; [1]
+
+// 指定键众数
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 20], ['foo' =&gt; 20], ['foo' =&gt; 40]])-&gt;mode('foo');
+=&gt; [10,20]
+</code></pre>
+<h4 id="collapse">collapse()</h4>
+<blockquote>
+<p>一个多个一维数组集合组装为单个一维数组集合</p>
+</blockquote>
+<pre><code class="language-PHP">// 多个一维数组的值 array_merege
+&gt;&gt;&gt; collect([[1, 2, 3], [4, 5, 6], [7, 8, 9]])-&gt;collapse()-&gt;all()
+=&gt; [1,2,3,4,5,6,7,8,9]
+// 不适用多维数组
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 20], ['foo' =&gt; 20], ['foo' =&gt; 40]])-&gt;collapse()-&gt;all()
+=&gt; [&quot;foo&quot; =&gt; 40]
+&gt;&gt;&gt;
+</code></pre>
+<h4 id="contains">contains()</h4>
+<blockquote>
+<p>contains($key, $operator = null, $value = null) 方法检查集合有否包含指定的元素<br>
+contains 方法用 “松散” 比较检查元素值，用 containsStrict 方法使用 “严格” 比较过滤。</p>
+</blockquote>
+<pre><code class="language-PHP">// 单个数值或者回調函數判断
+&gt;&gt;&gt; collect([1,2,3,4])-&gt;contains(1)
+=&gt; true
+&gt;&gt;&gt; collect([['foo' =&gt; 10],['foo' =&gt; 20]])-&gt;contains(function($val){ return $val['foo'] &gt; 20 ;});
+=&gt; true
+
+// 数组，键值对
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 40]])-&gt;contains(['foo' =&gt; 10])
+=&gt; true
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 40]])-&gt;contains('foo',10)
+=&gt; true
+// 支持多種比較查詢 == &lt;&gt; &gt; &lt; !== 等等
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 40]])-&gt;contains('foo', '&gt;', 10)
+=&gt; true
+</code></pre>
+<h4 id="crossjoin">crossJoin()</h4>
+<blockquote>
+<p>crossJoin(...$lists)  方法交叉连接指定数组或集合的值，返回所有可能排列的笛卡尔积</p>
+</blockquote>
+<pre><code class="language-PHP">// 数组循环迭代，每次每个集合中取一个 类似于 An1*M 
+&gt;&gt;&gt; collect([1,2])-&gt;crossJoin([3,4])-&gt;all()
+=&gt; [
+     [1,3],
+     [1,4],
+     [2,3],
+     [2,4],
+   ]
+&gt;&gt;&gt;
+
+</code></pre>
+<h4 id="diff">diff()</h4>
+<blockquote>
+<p>数组中array_diff()方法，本函数只检查了多维数组中的一维</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect([1,2])-&gt;diff([1,2,3,4])-&gt;all()
+=&gt; []
+&gt;&gt;&gt; collect([1,2,5])-&gt;diff([1,2,3,4])-&gt;all()
+=&gt; [2 =&gt; 5]
+</code></pre>
+<h4 id="diffusing">diffUsing()</h4>
+<h4 id="diffassoc">diffAssoc()</h4>
+<h4 id="diffassocusing">diffAssocUsing()</h4>
+<h4 id="diffkeys">diffKeys()</h4>
+<h4 id="diffkeysusing">diffKeysUsing()</h4>
+<h4 id="duplicates">duplicates()</h4>
+<blockquote>
+<p>duplicates($callback = null, $strict = false) 从集合中检索并返回重复的值</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般用法
+&gt;&gt;&gt; collect(['a', 'b', 'a', 'c', 'b'])-&gt;duplicates()-&gt;all()
+=&gt; [2 =&gt; &quot;a&quot;, 4 =&gt; &quot;b&quot;]
+// 如果集合包含数组或对象，则可以需要检查重复值的属性的键
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 40]])-&gt;duplicates('foo')-&gt;all();
+=&gt; [1 =&gt; 10]
+</code></pre>
+<h4 id="duplicatesstrict">duplicatesStrict()</h4>
+<h4 id="except">except()</h4>
+<blockquote>
+<p>except($keys) 方法返回集合中除了指定键之外的所有集合项：</p>
+</blockquote>
+<pre><code class="language-PHP">// 参数可传单个字段，也可以传枚举类型的数组
+&gt;&gt;&gt; collect(['foo' =&gt; 10, 'foo2' =&gt; 10, 'foo' =&gt; 40])-&gt;except('foo')-&gt;all();
+=&gt; [&quot;foo2&quot; =&gt; 10]
+&gt;&gt;&gt; collect(['foo' =&gt; 10, 'foo2' =&gt; 10, 'foo3' =&gt; 40])-&gt;except(['foo','foo2'])-&gt;all();
+=&gt; [&quot;foo3&quot; =&gt; 10]
+</code></pre>
+<h4 id="filter">filter()</h4>
+<blockquote>
+<p>用给定的回调函数过滤集合，只保留那些通过指定条件测试的集合项;如果没有提供回调函数，集合中所有返回 false 的元素都会被移除</p>
+</blockquote>
+<pre><code class="language-PHP">// 指定回调函数，过滤集合
+&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 40]])-&gt;filter(function($val){ return $val['foo'] &gt; 20;})-&gt;all();
+=&gt; [
+     2 =&gt; [
+       &quot;foo&quot; =&gt; 40,
+     ],
+   ]
+// 没有回调函数，直接过滤false array_filter()
+&gt;&gt;&gt; collect([1, 2, 3, null, false, '', 0, []])-&gt;filter()-&gt;all()
+=&gt; [1, 2, 3]
+</code></pre>
+<h4 id="first">first()</h4>
+<blockquote>
+<p>first(callable $callback = null, <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>d</mi><mi>e</mi><mi>f</mi><mi>a</mi><mi>u</mi><mi>l</mi><mi>t</mi><mo>=</mo><mi>n</mi><mi>u</mi><mi>l</mi><mi>l</mi><mo>)</mo><mi mathvariant="normal">从</mi><mi mathvariant="normal">集</mi><mi mathvariant="normal">合</mi><mi mathvariant="normal">中</mi><mi mathvariant="normal">返</mi><mi mathvariant="normal">回</mi><mi mathvariant="normal">符</mi><mi mathvariant="normal">合</mi><mi mathvariant="normal">条</mi><mi mathvariant="normal">件</mi><mi mathvariant="normal">的</mi><mi mathvariant="normal">第</mi><mi mathvariant="normal">一</mi><mi mathvariant="normal">个</mi><mi mathvariant="normal">值</mi><mi mathvariant="normal">，</mi><mi mathvariant="normal">支</mi><mi mathvariant="normal">持</mi><mi mathvariant="normal">回</mi><mi mathvariant="normal">调</mi><mi mathvariant="normal">函</mi><mi mathvariant="normal">数</mi><mi mathvariant="normal">；</mi><mi mathvariant="normal">可</mi><mi mathvariant="normal">设</mi><mi mathvariant="normal">置</mi><mi mathvariant="normal">默</mi><mi mathvariant="normal">认</mi><mi mathvariant="normal">值</mi></mrow><annotation encoding="application/x-tex">default = null) 从集合中返回符合条件的第一个值，支持回调函数；可设置默认值</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8888799999999999em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">d</span><span class="mord mathdefault">e</span><span class="mord mathdefault" style="margin-right:0.10764em;">f</span><span class="mord mathdefault">a</span><span class="mord mathdefault">u</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault">t</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">u</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mclose">)</span><span class="mord cjk_fallback">从</span><span class="mord cjk_fallback">集</span><span class="mord cjk_fallback">合</span><span class="mord cjk_fallback">中</span><span class="mord cjk_fallback">返</span><span class="mord cjk_fallback">回</span><span class="mord cjk_fallback">符</span><span class="mord cjk_fallback">合</span><span class="mord cjk_fallback">条</span><span class="mord cjk_fallback">件</span><span class="mord cjk_fallback">的</span><span class="mord cjk_fallback">第</span><span class="mord cjk_fallback">一</span><span class="mord cjk_fallback">个</span><span class="mord cjk_fallback">值</span><span class="mord cjk_fallback">，</span><span class="mord cjk_fallback">支</span><span class="mord cjk_fallback">持</span><span class="mord cjk_fallback">回</span><span class="mord cjk_fallback">调</span><span class="mord cjk_fallback">函</span><span class="mord cjk_fallback">数</span><span class="mord cjk_fallback">；</span><span class="mord cjk_fallback">可</span><span class="mord cjk_fallback">设</span><span class="mord cjk_fallback">置</span><span class="mord cjk_fallback">默</span><span class="mord cjk_fallback">认</span><span class="mord cjk_fallback">值</span></span></span></span>default</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect()-&gt;first();
+=&gt; null
+&gt;&gt;&gt; collect([1, 2, 3, 4])-&gt;first();
+=&gt; 1
+&gt;&gt;&gt; collect([1, 2, 3, 4])-&gt;first(function($val){ return $val &gt; 30;});
+=&gt; null
+&gt;&gt;&gt; collect([1, 2, 3, 4])-&gt;first(function($val){ return $val &gt; 3;});
+=&gt; 4
+&gt;&gt;&gt; collect([1, 2, 3, 4])-&gt;first(function($val){ return $val &gt; 5;}, 5);
+=&gt; 5
+</code></pre>
+<h4 id="flatten">flatten()</h4>
+<blockquote>
+<p>flatten(<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>d</mi><mi>e</mi><mi>p</mi><mi>t</mi><mi>h</mi><mo>=</mo><mi>I</mi><mi>N</mi><mi>F</mi><mo>)</mo><mi>f</mi><mi>l</mi><mi>a</mi><mi>t</mi><mi>t</mi><mi>e</mi><mi>n</mi><mo>(</mo></mrow><annotation encoding="application/x-tex">depth = INF) flatten(</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8888799999999999em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">d</span><span class="mord mathdefault">e</span><span class="mord mathdefault">p</span><span class="mord mathdefault">t</span><span class="mord mathdefault">h</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathdefault" style="margin-right:0.07847em;">I</span><span class="mord mathdefault" style="margin-right:0.10903em;">N</span><span class="mord mathdefault" style="margin-right:0.13889em;">F</span><span class="mclose">)</span><span class="mord mathdefault" style="margin-right:0.10764em;">f</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault">a</span><span class="mord mathdefault">t</span><span class="mord mathdefault">t</span><span class="mord mathdefault">e</span><span class="mord mathdefault">n</span><span class="mopen">(</span></span></span></span>depth = INF) 将多维集合转换为一维集合，其中 $depth 为转换深度</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect([['foo' =&gt; 10], ['foo' =&gt; 10], ['foo' =&gt; 40]])-&gt;flatten()-&gt;all();
+=&gt; [10,10,40]
+&gt;&gt;&gt; collect([1=&gt;'a', 2=&gt;['b'=&gt;['c' =&gt; 'd']]])-&gt;flatten(2)-&gt;all()
+=&gt; [&quot;a&quot;,&quot;d&quot;,]
+</code></pre>
+<h4 id="flip">flip()</h4>
+<h4 id="forget">forget()</h4>
+<blockquote>
+<p>forget($keys) 通过指定的键来移除集合中对应的内容</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['foo' =&gt; 10, 'foo2' =&gt; 10, 'foo3' =&gt; 40])-&gt;forget(['foo','foo2'])-&gt;all();
+=&gt; [&quot;foo3&quot; =&gt; 40]
+</code></pre>
+<h4 id="get">get()</h4>
+<blockquote>
+<p>get($key, $default = null) 方法返回指定键的集合项，如果该键在集合中不存在，则返回 null；可传递默认参数default，该默认参数可为回调函数</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a' =&gt; 1])-&gt;get('a')
+=&gt; 1
+&gt;&gt;&gt; collect(['a' =&gt; 1])-&gt;get('b')
+=&gt; null
+&gt;&gt;&gt; collect(['a' =&gt; 1])-&gt;get('b', 11)
+=&gt; 11
+&gt;&gt;&gt; collect(['a' =&gt; 1])-&gt;get('b', function(){return 111;})
+=&gt; 111
+&gt;&gt;&gt;
+</code></pre>
+<h4 id="groupby">groupBy()</h4>
+<h4 id="keyby">keyBy()</h4>
+<blockquote>
+<p>方法以指定的键作为新集合的键。如果多个集合项具有相同的键，则只有最后一个集合项会显示在新集合中;支持对调函数</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般使用，直接传递某个键
+&gt;&gt;&gt; collect([[ 'a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;4]])-&gt;keyBy('a')-&gt;all()
+=&gt; [
+     1 =&gt; [&quot;a&quot; =&gt; 1,&quot;b&quot; =&gt; 2,],
+     3 =&gt; [&quot;a&quot; =&gt; 3,&quot;b&quot; =&gt; 4,],
+   ]
+// 回调函数返回的值会作为该集合的键   
+&gt;&gt;&gt; collect([[ 'a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;4]])-&gt;keyBy(function($item){return $item['a']+10;})-&gt;all()
+=&gt; [
+     11 =&gt; [&quot;a&quot; =&gt; 1,&quot;b&quot; =&gt; 2,],
+     13 =&gt; [&quot;a&quot; =&gt; 3,&quot;b&quot; =&gt; 4,],
+   ]
+</code></pre>
+<h4 id="has">has()</h4>
+<blockquote>
+<p>has($key) 判断集合中是否存在指定键,支持传入多个键 array_key_exists底层方法</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2, 'c'=&gt;3])-&gt;has('a')
+=&gt; true
+&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2, 'c'=&gt;3])-&gt;has(['a','b'])
+=&gt; true
+&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2, 'c'=&gt;3])-&gt;has(['a','b','d'])
+=&gt; false
+</code></pre>
+<h4 id="implode">implode</h4>
+<blockquote>
+<p>implode($value, $glue = null) 用于合并集合项</p>
+</blockquote>
+<pre><code class="language-PHP">// 集合中包含简单的字符串或数值
+&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2, 'c'=&gt;3])-&gt;implode('*')
+=&gt; &quot;1*2*3&quot;
+// 集合包含数组或对象
+&gt;&gt;&gt; collect([[ 'a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;4]])-&gt;implode('a', '**')
+=&gt; &quot;1**3&quot;
+</code></pre>
+<h4 id="intersect">intersect()</h4>
+<h4 id="intersectbykeys">intersectByKeys()</h4>
+<h4 id="isempty">isEmpty()</h4>
+<h4 id="join">join()</h4>
+<blockquote>
+<p>join($glue, $finalGlue = '') 将集合中的值用字符串连接</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a', 'b', 'c'])-&gt;join(', ');
+=&gt; 'a, b, c'
+&gt;&gt;&gt; collect(['a', 'b', 'c'])-&gt;join(', ', ', and ');
+=&gt; 'a, b, and c'
+&gt;&gt;&gt; collect(['a', 'b'])-&gt;join(', ', ' and ');
+=&gt; 'a and b'
+&gt;&gt;&gt; collect(['a'])-&gt;join(', ', ' and '); 
+=&gt; 'a'
+&gt;&gt;&gt; collect([])-&gt;join(', ', ' and '); 
+=&gt; ''
+</code></pre>
+<h4 id="keys">keys()</h4>
+<h4 id="last">last()</h4>
+<blockquote>
+<p>last() 返回集合中通过指定条件测试的最后一个元素</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般调用，直接返回最后有一个元素
+&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2, 'c'=&gt;3])-&gt;last();
+=&gt; 3
+// 回调函数，返回符合条件的最后一个元素
+&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2, 'c'=&gt;3])-&gt;last(function($val){return $val&lt;2;});
+=&gt; 1
+</code></pre>
+<h4 id="pluck">pluck()</h4>
+<blockquote>
+<p>pluck($value, $key = null) 方法可以获取集合中指定键对应的所有值</p>
+</blockquote>
+<pre><code class="language-PHP">// 指定键对应的所有值
+&gt;&gt;&gt; collect([[ 'a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;4]])-&gt;pluck('a')-&gt;all();
+=&gt; [1,3]
+// 指定生成集合的键
+&gt;&gt;&gt; collect([[ 'a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;4]])-&gt;pluck('a', 'b')-&gt;all();
+=&gt; [2 =&gt; 1, 4 =&gt; 3]
+// 如果存在重复的键，则最后一个匹配元素将被插入到弹出的集合中
+&gt;&gt;&gt; collect([['a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;2]])-&gt;pluck('a', 'b')-&gt;all();
+=&gt; [2 =&gt; 3]
+</code></pre>
+<h4 id="map">map()</h4>
+<blockquote>
+<p>map(callable $callback) 遍历集合并将每一个值传入给定的回调函数, 生成被修改过集合项的新集合</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect([[ 'a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;2]])-&gt;map(function($item, $key){ return $item['a'] * 2;})-&gt;all();
+=&gt; [2,6]
+</code></pre>
+<h4 id="maptodictionary">mapToDictionary()</h4>
+<h4 id="mapwithkeys">mapWithKeys()</h4>
+<blockquote>
+<p>遍历集合并将每个值传入给定的回调函数。将返回一个包含单个键 / 值对的关联数组</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect([[ 'a'=&gt;1,'b'=&gt;2],['a'=&gt;3,'b'=&gt;4]])-&gt;mapWithKeys(function($item){return [$item['a'] =&gt; $item['b']];})-&gt;all()
+=&gt; [
+     1 =&gt; 2,
+     3 =&gt; 4,
+   ]
+</code></pre>
+<h4 id="merge">merge()</h4>
+<blockquote>
+<p>方法将合并指定的数组或集合到原集合，如果给定的集合项的字符串键与原集合中的字符串键相匹配，则指定集合项的值将覆盖原集合的值 array_merge</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般使用
+&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2])-&gt;merge(['c' =&gt; 5])-&gt;all();
+=&gt; [
+     &quot;a&quot; =&gt; 1,
+     &quot;b&quot; =&gt; 2,
+     &quot;c&quot; =&gt; 5,
+   ]
+// 有覆盖
+&gt;&gt;&gt; collect([ 'a'=&gt;1,'b'=&gt;2])-&gt;merge(['a' =&gt; 5])-&gt;all();
+=&gt; [
+     &quot;a&quot; =&gt; 5,
+     &quot;b&quot; =&gt; 2,
+   ]
+</code></pre>
+<h4 id="mergerecursive">mergeRecursive()</h4>
+<blockquote>
+<p>以递归的形式合并给定的数组或集合到原集合中 array_merge_recursive</p>
+</blockquote>
+<pre><code class="language-PHP">// 同一个键值的合并
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;mergeRecursive(['a' =&gt; 5])-&gt;all();
+=&gt; [&quot;a&quot; =&gt; [1,5,&quot;b&quot; =&gt; 2]
+&gt;&gt;&gt; collect([ 'a'=&gt;['c'=&gt;1],'b'=&gt;2])-&gt;mergeRecursive(['a' =&gt; 5])-&gt;all();
+=&gt; [&quot;a&quot; =&gt; [&quot;c&quot; =&gt; 1,0 =&gt; 5,],&quot;b&quot; =&gt; 2,]
+</code></pre>
+<h4 id="combine">combine()</h4>
+<blockquote>
+<p>将一个集合的值作为键，与另一个数组或集合的值进行结合 array_combine</p>
+</blockquote>
+<pre><code class="language-PHP">// 一般使用
+&gt;&gt;&gt; collect(['a', 'b'])-&gt;combine([1,2])-&gt;all()
+=&gt; [
+     &quot;a&quot; =&gt; 1,
+     &quot;b&quot; =&gt; 2,
+   ]
+// 只能传递相等数量的集合
+&gt;&gt;&gt; collect(['a', 'b'])-&gt;combine([1,2,3])-&gt;all()
+PHP Warning:  array_combine(): Both parameters should have an equal number of elements in D:/dev/study/laravel/vendor/laravel/framework/src/Illuminate/Support/Collection.php on line 777
+=&gt; [
+     false,
+   ]
+</code></pre>
+<h4 id="union">union()</h4>
+<blockquote>
+<p>方法将给定数组添加到集合中。如果给定的数组含有与原集合一样的键，则首选原始集合的值,这点和merge相反</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a'=&gt;1, 'b'=&gt;2])-&gt;union(['a'=&gt;3,'d'=&gt;4])-&gt;all()
+=&gt; [
+     &quot;a&quot; =&gt; 1,
+     &quot;b&quot; =&gt; 2,
+     &quot;d&quot; =&gt; 4,
+   ]
+&gt;&gt;&gt; collect(['a'=&gt;1, 'b'=&gt;2])-&gt;merge(['a'=&gt;3,'d'=&gt;4])-&gt;all()
+=&gt; [
+     &quot;a&quot; =&gt; 3,
+     &quot;b&quot; =&gt; 2,
+     &quot;d&quot; =&gt; 4,
+   ]
+
+</code></pre>
+<h4 id="nth">nth()</h4>
+<h4 id="only">only()</h4>
+<blockquote>
+<p>返回集合中所有指定键的集合项</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a'=&gt;1, 'b'=&gt;2])-&gt;only('a')-&gt;all()
+=&gt; [
+     &quot;a&quot; =&gt; 1,
+   ]
+</code></pre>
+<h4 id="pop">pop()</h4>
+<h4 id="prepend">prepend()</h4>
+<blockquote>
+<p>prepend($value, $key = null) 将指定的值添加的集合的开头</p>
+</blockquote>
+<pre><code class="language-PHP">// 添加指定值到集合的开头
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;prepend('c')-&gt;all()
+=&gt; [
+     0 =&gt; &quot;c&quot;,
+     &quot;a&quot; =&gt; 1,
+     &quot;b&quot; =&gt; 2,
+   ]
+// 指定新增集合项的键   
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;prepend('c',1)-&gt;all()
+=&gt; [
+     1 =&gt; &quot;c&quot;,
+     &quot;a&quot; =&gt; 1,
+     &quot;b&quot; =&gt; 2,
+   ]
+</code></pre>
+<h4 id="push">push()</h4>
+<blockquote>
+<p>push($value) 添加一个值于集合末尾,只能插入一个值</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a','b'])-&gt;push('c','d')-&gt;all()
+=&gt; [&quot;a&quot;, &quot;b&quot;, &quot;c&quot;]
+&gt;&gt;&gt; collect([1, 2, 3])-&gt;push(4, 5)-&gt;all();
+=&gt; [1, 2, 3, 4]
+</code></pre>
+<h4 id="concat">concat()</h4>
+<blockquote>
+<p>在集合的末端附加指定的数组或者集合</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect([1, 2, 3])-&gt;concat([4, 5])-&gt;all();
+=&gt; [1, 2, 3, 4, 5]
+</code></pre>
+<h4 id="pull">pull()</h4>
+<blockquote>
+<p>pull($key, $default = null) 指定键对应的值从集合中移除并返回,default为默认值</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;pull('a',0)
+=&gt; 1
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;pull('c',3)
+=&gt; 3
+</code></pre>
+<h4 id="put">put()</h4>
+<blockquote>
+<p>put($key, $value) 设定集合内指定键的值，如果不存在，则新增到末尾</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;put('c',3)-&gt;all()
+=&gt; [
+     &quot;a&quot; =&gt; 1,
+     &quot;b&quot; =&gt; 2,
+     &quot;c&quot; =&gt; 3,
+   ]
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;put('a',3)-&gt;all()
+=&gt; [
+     &quot;a&quot; =&gt; 3,
+     &quot;b&quot; =&gt; 2,
+   ]
+</code></pre>
+<h4 id="random">random</h4>
+<blockquote>
+<p>random(<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi><mi>u</mi><mi>m</mi><mi>b</mi><mi>e</mi><mi>r</mi><mo>=</mo><mi>n</mi><mi>u</mi><mi>l</mi><mi>l</mi><mo>)</mo><mi mathvariant="normal">集</mi><mi mathvariant="normal">合</mi><mi mathvariant="normal">中</mi><mi mathvariant="normal">返</mi><mi mathvariant="normal">回</mi><mi mathvariant="normal">一</mi><mi mathvariant="normal">个</mi><mi mathvariant="normal">随</mi><mi mathvariant="normal">机</mi><mi mathvariant="normal">项</mi><mo separator="true">,</mo></mrow><annotation encoding="application/x-tex">number = null) 集合中返回一个随机项,</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">u</span><span class="mord mathdefault">m</span><span class="mord mathdefault">b</span><span class="mord mathdefault">e</span><span class="mord mathdefault" style="margin-right:0.02778em;">r</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">u</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mclose">)</span><span class="mord cjk_fallback">集</span><span class="mord cjk_fallback">合</span><span class="mord cjk_fallback">中</span><span class="mord cjk_fallback">返</span><span class="mord cjk_fallback">回</span><span class="mord cjk_fallback">一</span><span class="mord cjk_fallback">个</span><span class="mord cjk_fallback">随</span><span class="mord cjk_fallback">机</span><span class="mord cjk_fallback">项</span><span class="mpunct">,</span></span></span></span>number不能大于集合的数量，否则报错</p>
+</blockquote>
+<pre><code class="language-PHP">// 默认返回一个
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;random()
+=&gt; 2
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;random(2)-&gt;all()
+=&gt; [
+     1,
+     2,
+   ]
+// 大于集合数量，报错   
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;random(3)-&gt;all()
+InvalidArgumentException with message 'You requested 3 items, but there are only 2 items available.'
+</code></pre>
+<h4 id="reduce">reduce</h4>
+<blockquote>
+<p>reduce(callable $callback, $initial = null) 将每次迭代的结果传递给下一次迭代，直到遍历完集合</p>
+</blockquote>
+<pre><code class="language-PHP">// 循环迭代 返回res
+&gt;&gt;&gt; collect([1, 2, 3])-&gt;reduce(function($res,$val){ return $res+$val;});
+=&gt; 6
+// res初始值
+&gt;&gt;&gt; collect([1, 2, 3])-&gt;reduce(function($res,$val){ return $res+$val;},10);
+=&gt; 16
+</code></pre>
+<h4 id="replace">replace</h4>
+<blockquote>
+<p>replace 方法类似于 merge，不仅可以覆盖匹配到的相同字符串键的集合项，而且也可以覆盖数字键的集合</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;replace(['b'=&gt;10])-&gt;all();
+=&gt; [
+     &quot;a&quot; =&gt; 1,
+     &quot;b&quot; =&gt; 10,
+   ]
+&gt;&gt;&gt; collect([1, 2, 3])-&gt;replace([1=&gt;10])-&gt;all();
+=&gt; [1, 10, 3]
+</code></pre>
+<h4 id="replacerecursive">replaceRecursive()</h4>
+<h4 id="reverse">reverse()</h4>
+<h4 id="search">search()</h4>
+<blockquote>
+<p>search($value, $strict = false) 集合的搜寻方法，搜索给定的值,返回键值</p>
+</blockquote>
+<pre><code class="language-PHP">// 搜寻指定的值
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;search('a');
+=&gt; false
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;search('1');
+=&gt; &quot;a&quot;
+// 指定严格模式
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;search('1',true);
+=&gt; false
+// 指定回调函数
+&gt;&gt;&gt; collect(['a'=&gt;1,'b'=&gt;2])-&gt;search(function($item,$key){return $item &gt; 1;});
+=&gt; &quot;b&quot;
+</code></pre>
+<h4 id="shift">shift()</h4>
+<h4 id="shuffle">shuffle()</h4>
+<h4 id="skip">skip()</h4>
+<h4 id="slice">slice()</h4>
+<blockquote>
+<p>slice($offset, $length = null) 返回集合中给定索引开始后面的部分： array_slice()</p>
+</blockquote>
+<pre><code class="language-PHP">&gt;&gt;&gt; collect([1, 2, 3, 4, 5, 6, 7])-&gt;slice(3)-&gt;all()
+=&gt; [
+     3 =&gt; 4,
+     4 =&gt; 5,
+     5 =&gt; 6,
+     6 =&gt; 7,
+   ]
+&gt;&gt;&gt; collect([1, 2, 3, 4, 5, 6, 7])-&gt;slice(2,2)-&gt;all()
+=&gt; [
+     2 =&gt; 3,
+     3 =&gt; 4,
+   ]
+</code></pre>
+<h4 id="split">split()</h4>
+<h4 id="chunk">chunk()</h4>
+<blockquote>
+<p>chunk($size) 集合分割成多个指定大小的较小集合</p>
+</blockquote>
+<h4 id="sort">sort()</h4>
+<h4 id="sortdesc">sortDesc()</h4>
+<h4 id="sortby">sortBy()</h4>
+<h4 id="sortbydesc">sortByDesc()</h4>
+<h4 id="sortkeys">sortKeys()</h4>
+<h4 id="sortkeysdesc">sortKeysDesc()</h4>
+<h4 id="splice">splice()</h4>
+<h4 id="take">take()</h4>
+<h4 id="takeuntil">takeUntil()</h4>
+<h4 id="takewhile">takeWhile()</h4>
+<h4 id="transform">transform()</h4>
+<blockquote>
+<p>transform(callable $callback) 方法会遍历整个集合，并对集合中的每项都会调用其回调函数,和map原理一致，但是该方法会改变原有集合</p>
+</blockquote>
+<pre><code class="language-PHP">// map不会改变原集合的值
+&gt;&gt;&gt; $a = collect([1,2,3,4,5]);
+&gt;&gt;&gt; $a-&gt;map(function($item,$key){return $item*2;})
+&gt;&gt;&gt; $a-&gt;all();
+=&gt; [1,2,3,4,5,]
+// transform改变原集合
+&gt;&gt;&gt; $a-&gt;transform(function($item,$key){return $item*2;})
+&gt;&gt;&gt; $a-&gt;all();
+=&gt; [2,4,6,8,10,]
+&gt;&gt;&gt;
+</code></pre>
+<h4 id="values">values()</h4>
+<h4 id="zip">zip()</h4>
+<h4 id="pad">pad()</h4>
+<h4 id="getiterator">getIterator()</h4>
+<h4 id="count">count()</h4>
+<h4 id="add">add()</h4>
+<h4 id="tobase">toBase()</h4>
+<blockquote>
+<p>基于当前集合返回一个新的集合</p>
+</blockquote>
+<h4 id="offsetexists">offsetExists()</h4>
+<h4 id="offsetget">offsetGet()</h4>
+<h4 id="offsetset">offsetSet()</h4>
+<h4 id="offsetunset">offsetUnset()</h4>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li>
+<ul>
+<li><a href="#%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E9%9B%86%E5%90%88">创建一个新的集合</a></li>
+<li><a href="#%E9%9D%99%E6%80%81%E5%87%BD%E6%95%B0-times">静态函数 times()</a></li>
+<li><a href="#%E6%87%B6%E9%9B%86%E5%90%88-lazycollection">懶集合 LazyCollection</a></li>
+<li><a href="#%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E5%A4%84%E7%90%86">基本数据处理</a>
+<ul>
+<li><a href="#avg">avg()</a></li>
+<li><a href="#median">median()</a></li>
+<li><a href="#mode">mode()</a></li>
+<li><a href="#collapse">collapse()</a></li>
+<li><a href="#contains">contains()</a></li>
+<li><a href="#crossjoin">crossJoin()</a></li>
+<li><a href="#diff">diff()</a></li>
+<li><a href="#diffusing">diffUsing()</a></li>
+<li><a href="#diffassoc">diffAssoc()</a></li>
+<li><a href="#diffassocusing">diffAssocUsing()</a></li>
+<li><a href="#diffkeys">diffKeys()</a></li>
+<li><a href="#diffkeysusing">diffKeysUsing()</a></li>
+<li><a href="#duplicates">duplicates()</a></li>
+<li><a href="#duplicatesstrict">duplicatesStrict()</a></li>
+<li><a href="#except">except()</a></li>
+<li><a href="#filter">filter()</a></li>
+<li><a href="#first">first()</a></li>
+<li><a href="#flatten">flatten()</a></li>
+<li><a href="#flip">flip()</a></li>
+<li><a href="#forget">forget()</a></li>
+<li><a href="#get">get()</a></li>
+<li><a href="#groupby">groupBy()</a></li>
+<li><a href="#keyby">keyBy()</a></li>
+<li><a href="#has">has()</a></li>
+<li><a href="#implode">implode</a></li>
+<li><a href="#intersect">intersect()</a></li>
+<li><a href="#intersectbykeys">intersectByKeys()</a></li>
+<li><a href="#isempty">isEmpty()</a></li>
+<li><a href="#join">join()</a></li>
+<li><a href="#keys">keys()</a></li>
+<li><a href="#last">last()</a></li>
+<li><a href="#pluck">pluck()</a></li>
+<li><a href="#map">map()</a></li>
+<li><a href="#maptodictionary">mapToDictionary()</a></li>
+<li><a href="#mapwithkeys">mapWithKeys()</a></li>
+<li><a href="#merge">merge()</a></li>
+<li><a href="#mergerecursive">mergeRecursive()</a></li>
+<li><a href="#combine">combine()</a></li>
+<li><a href="#union">union()</a></li>
+<li><a href="#nth">nth()</a></li>
+<li><a href="#only">only()</a></li>
+<li><a href="#pop">pop()</a></li>
+<li><a href="#prepend">prepend()</a></li>
+<li><a href="#push">push()</a></li>
+<li><a href="#concat">concat()</a></li>
+<li><a href="#pull">pull()</a></li>
+<li><a href="#put">put()</a></li>
+<li><a href="#random">random</a></li>
+<li><a href="#reduce">reduce</a></li>
+<li><a href="#replace">replace</a></li>
+<li><a href="#replacerecursive">replaceRecursive()</a></li>
+<li><a href="#reverse">reverse()</a></li>
+<li><a href="#search">search()</a></li>
+<li><a href="#shift">shift()</a></li>
+<li><a href="#shuffle">shuffle()</a></li>
+<li><a href="#skip">skip()</a></li>
+<li><a href="#slice">slice()</a></li>
+<li><a href="#split">split()</a></li>
+<li><a href="#chunk">chunk()</a></li>
+<li><a href="#sort">sort()</a></li>
+<li><a href="#sortdesc">sortDesc()</a></li>
+<li><a href="#sortby">sortBy()</a></li>
+<li><a href="#sortbydesc">sortByDesc()</a></li>
+<li><a href="#sortkeys">sortKeys()</a></li>
+<li><a href="#sortkeysdesc">sortKeysDesc()</a></li>
+<li><a href="#splice">splice()</a></li>
+<li><a href="#take">take()</a></li>
+<li><a href="#takeuntil">takeUntil()</a></li>
+<li><a href="#takewhile">takeWhile()</a></li>
+<li><a href="#transform">transform()</a></li>
+<li><a href="#values">values()</a></li>
+<li><a href="#zip">zip()</a></li>
+<li><a href="#pad">pad()</a></li>
+<li><a href="#getiterator">getIterator()</a></li>
+<li><a href="#count">count()</a></li>
+<li><a href="#add">add()</a></li>
+<li><a href="#tobase">toBase()</a></li>
+<li><a href="#offsetexists">offsetExists()</a></li>
+<li><a href="#offsetget">offsetGet()</a></li>
+<li><a href="#offsetset">offsetSet()</a></li>
+<li><a href="#offsetunset">offsetUnset()</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://xiaoxie110.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>
