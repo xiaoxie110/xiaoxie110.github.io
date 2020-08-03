@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://xiaoxie110.github.io</id>
     <title>Gridea</title>
-    <updated>2020-08-03T03:11:15.478Z</updated>
+    <updated>2020-08-03T03:13:59.600Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://xiaoxie110.github.io"/>
     <link rel="self" href="https://xiaoxie110.github.io/atom.xml"/>
@@ -16,8 +16,8 @@
         <link href="https://xiaoxie110.github.io/laravel-xue-xi-ormyi/">
         </link>
         <updated>2020-08-03T03:08:07.000Z</updated>
-        <content type="html"><![CDATA[<p><a href="https://github.com/xiaoxie110/laravel-learn/tree/master/vendor/laravel/framework/src/Illuminate/Database">源碼</a><br>
-####ORM是什么</p>
+        <content type="html"><![CDATA[<p><a href="https://github.com/xiaoxie110/laravel-learn/tree/master/vendor/laravel/framework/src/Illuminate/Database">源碼</a></p>
+<h4 id="orm是什么">ORM是什么</h4>
 <ul>
 <li>
 <p>即 Object-Relational，Mapping（<strong>对象关系映射</strong>），它的作用是在关系型数据库和业务实体对象之间作一个映射，这样，我们在操作具体的业务对象时，就不需要再去和复杂的SQL语句打交道，只需简单的操作对象的属性和方法即可。</p>
@@ -29,8 +29,8 @@
 <p>Laravel 的 Eloquent ORM 使用 ActiveRecord 实现方式，每一个 Eloquent 模型类对应着数据库中的一张表，可以通过调用模型类的相应方法实现对数据库的增删改查</p>
 </li>
 </ul>
-<p>####ORM实现原理<br>
-<img src="https://img2018.cnblogs.com/common/1845922/201911/1845922-20191105141156316-434127328.png" alt="此处输入图片的描述" loading="lazy"><br>
+<h4 id="orm实现原理">ORM实现原理</h4>
+<p><img src="https://img2018.cnblogs.com/common/1845922/201911/1845922-20191105141156316-434127328.png" alt="此处输入图片的描述" loading="lazy"><br>
 Illuminate\Database\Eloquent\Model(_call)</p>
 <pre><code>Model中的静态方法
 protected static function boot()
@@ -63,7 +63,7 @@ public static function __callStatic($method, $parameters)
     $this-&gt;fill($attributes);//初始化模型的属性
 }
 </code></pre>
-<p>####ORM 查询过程</p>
+<h4 id="orm-查询过程">ORM 查询过程</h4>
 <pre><code>public static function all($columns = ['*'])
 {
     return (new static)-&gt;newQuery()-&gt;get(

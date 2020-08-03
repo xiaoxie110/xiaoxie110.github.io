@@ -3,7 +3,7 @@
     <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>laravel学习-ORM（一） | Gridea</title>
-<link rel="shortcut icon" href="https://xiaoxie110.github.io/favicon.ico?v=1596424262337">
+<link rel="shortcut icon" href="https://xiaoxie110.github.io/favicon.ico?v=1596424436454">
 <link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
 <link rel="stylesheet" href="https://xiaoxie110.github.io/styles/main.css">
 <link rel="alternate" type="application/atom+xml" title="laravel学习-ORM（一） | Gridea - Atom Feed" href="https://xiaoxie110.github.io/atom.xml">
@@ -12,10 +12,10 @@
 
 
     <meta name="description" content="源碼
-####ORM是什么
+ORM是什么
 
 
-即 Object-Relational，Mapping（对象关系映射），它的作用是在关系型数据库和业务实体对象之间作一个映射，这样，我们在操作具体的业务对象时，就不需要再去和复杂的SQL语句打交道，只需简单的..." />
+即 Object-Relational，Mapping（对象关系映射），它的作用是在关系型数据库和业务实体对象之间作一个映射，这样，我们在操作具体的业务对象时，就不需要再去和复杂的SQL语句打交道，只需简单的操作对象..." />
     <meta name="keywords" content="" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
     <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
@@ -25,7 +25,7 @@
       <div class="main-content">
         <div class="site-header">
   <a href="https://xiaoxie110.github.io">
-  <img class="avatar" src="https://xiaoxie110.github.io/images/avatar.png?v=1596424262337" alt="">
+  <img class="avatar" src="https://xiaoxie110.github.io/images/avatar.png?v=1596424436454" alt="">
   </a>
   <h1 class="site-title">
     Gridea
@@ -92,8 +92,8 @@
             
             <div class="post-content-wrapper">
               <div class="post-content">
-                <p><a href="https://github.com/xiaoxie110/laravel-learn/tree/master/vendor/laravel/framework/src/Illuminate/Database">源碼</a><br>
-####ORM是什么</p>
+                <p><a href="https://github.com/xiaoxie110/laravel-learn/tree/master/vendor/laravel/framework/src/Illuminate/Database">源碼</a></p>
+<h4 id="orm是什么">ORM是什么</h4>
 <ul>
 <li>
 <p>即 Object-Relational，Mapping（<strong>对象关系映射</strong>），它的作用是在关系型数据库和业务实体对象之间作一个映射，这样，我们在操作具体的业务对象时，就不需要再去和复杂的SQL语句打交道，只需简单的操作对象的属性和方法即可。</p>
@@ -105,8 +105,8 @@
 <p>Laravel 的 Eloquent ORM 使用 ActiveRecord 实现方式，每一个 Eloquent 模型类对应着数据库中的一张表，可以通过调用模型类的相应方法实现对数据库的增删改查</p>
 </li>
 </ul>
-<p>####ORM实现原理<br>
-<img src="https://img2018.cnblogs.com/common/1845922/201911/1845922-20191105141156316-434127328.png" alt="此处输入图片的描述" loading="lazy"><br>
+<h4 id="orm实现原理">ORM实现原理</h4>
+<p><img src="https://img2018.cnblogs.com/common/1845922/201911/1845922-20191105141156316-434127328.png" alt="此处输入图片的描述" loading="lazy"><br>
 Illuminate\Database\Eloquent\Model(_call)</p>
 <pre><code>Model中的静态方法
 protected static function boot()
@@ -139,7 +139,7 @@ public static function __callStatic($method, $parameters)
     $this-&gt;fill($attributes);//初始化模型的属性
 }
 </code></pre>
-<p>####ORM 查询过程</p>
+<h4 id="orm-查询过程">ORM 查询过程</h4>
 <pre><code>public static function all($columns = ['*'])
 {
     return (new static)-&gt;newQuery()-&gt;get(
@@ -271,6 +271,9 @@ JoinClause，连接查询对象，多表join查询的实现;
 <ul>
 <li>
 <ul>
+<li><a href="#orm%E6%98%AF%E4%BB%80%E4%B9%88">ORM是什么</a></li>
+<li><a href="#orm%E5%AE%9E%E7%8E%B0%E5%8E%9F%E7%90%86">ORM实现原理</a></li>
+<li><a href="#orm-%E6%9F%A5%E8%AF%A2%E8%BF%87%E7%A8%8B">ORM 查询过程</a></li>
 <li><a href="#orm%E4%BD%BF%E7%94%A8">ORM使用</a>
 <ul>
 <li><a href="#%E6%A8%A1%E5%9E%8B%E6%A3%80%E7%B4%A2">模型检索</a></li>
