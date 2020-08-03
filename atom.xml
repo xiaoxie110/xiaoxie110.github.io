@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>https://xiaoxie110.github.io</id>
     <title>Gridea</title>
-    <updated>2020-07-28T11:06:32.249Z</updated>
+    <updated>2020-08-03T03:07:58.941Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="https://xiaoxie110.github.io"/>
     <link rel="self" href="https://xiaoxie110.github.io/atom.xml"/>
@@ -10,6 +10,378 @@
     <logo>https://xiaoxie110.github.io/images/avatar.png</logo>
     <icon>https://xiaoxie110.github.io/favicon.ico</icon>
     <rights>All rights reserved 2020, Gridea</rights>
+    <entry>
+        <title type="html"><![CDATA[Laravel学习-请求类 Response]]></title>
+        <id>https://xiaoxie110.github.io/laravel-xue-xi-qing-qiu-lei-response/</id>
+        <link href="https://xiaoxie110.github.io/laravel-xue-xi-qing-qiu-lei-response/">
+        </link>
+        <updated>2020-07-28T11:06:54.000Z</updated>
+        <content type="html"><![CDATA[<p>一个普通response返回数据，可以看出Response和Request类似，代码底层有一个 Response<br>
+类用于表示发送给终端用户的应用响应，其中包含响应头、Cookie、响应内容、以及其它发送给终端用户浏览器用于渲染响应页面的东西</p>
+<pre><code class="language-json">Illuminate\Http\Response {#263 ▼
+  +headers: Symfony\Component\HttpFoundation\ResponseHeaderBag {#264 ▼
+    #computedCacheControl: array:2 [▼
+      &quot;no-cache&quot; =&gt; true
+      &quot;private&quot; =&gt; true
+    ]
+    #cookies: array:1 [▼
+      &quot;&quot; =&gt; array:1 [▶]
+    ]
+    #headerNames: array:4 [▼
+      &quot;content-type&quot; =&gt; &quot;Content-Type&quot;
+      &quot;cache-control&quot; =&gt; &quot;Cache-Control&quot;
+      &quot;date&quot; =&gt; &quot;Date&quot;
+      &quot;set-cookie&quot; =&gt; &quot;Set-Cookie&quot;
+    ]
+    #headers: array:3 [▼
+      &quot;content-type&quot; =&gt; array:1 [▼
+        0 =&gt; &quot;text/html; charset=UTF-8&quot;
+      ]
+      &quot;cache-control&quot; =&gt; array:1 [▼
+        0 =&gt; &quot;no-cache, private&quot;
+      ]
+      &quot;date&quot; =&gt; array:1 [▼
+        0 =&gt; &quot;Sat, 25 Jul 2020 12:38:31 GMT&quot;
+      ]
+    ]
+    #cacheControl: []
+  }
+  #content: &quot;&quot;
+  #version: &quot;1.1&quot;
+  #statusCode: 200
+  #statusText: &quot;OK&quot;
+  #charset: null
+  +original: null
+  +exception: null
+}
+</code></pre>
+<h4 id="laravel请求生命周期">laravel请求生命周期</h4>
+<blockquote>
+<p>在 Laravel 请求的生命周期中，用户请求经过匹配路由处理后（通过控制器或匿名函数），就会返回相应的响应实例，响应头和响应内容的设置是在具体路由定义中实现，然后再经由路由器类 Illuminate\Routing\Router 的 toResponse方法进行最后的处理（自定义响应类的处理、返回的是数组、字符串、视图等非 Response 实例的处理）</p>
+</blockquote>
+<pre><code>// Illuminate\Routing\Router
+/**
+ * Return the response for the given route.
+ * 根据找到的路由返回执行结果
+ *
+ * @param  \Illuminate\Http\Request  $request
+ * @param  \Illuminate\Routing\Route  $route
+ * @return \Symfony\Component\HttpFoundation\Response
+ */
+protected function runRoute(Request $request, Route $route)
+{
+    $request-&gt;setRouteResolver(function () use ($route) {
+        return $route;
+    });
+
+    $this-&gt;events-&gt;dispatch(new RouteMatched($route, $request));
+    // prepareResponse再次处理返回结果
+    return $this-&gt;prepareResponse($request,
+        $this-&gt;runRouteWithinStack($route, $request)
+    );
+}
+
+/**
+ * Run the given route within a Stack &quot;onion&quot; instance.
+ * 路由中间件过滤
+ *
+ * @param  \Illuminate\Routing\Route  $route
+ * @param  \Illuminate\Http\Request  $request
+ * @return mixed
+ */
+protected function runRouteWithinStack(Route $route, Request $request)
+{
+    $shouldSkipMiddleware = $this-&gt;container-&gt;bound('middleware.disable') &amp;&amp;
+        $this-&gt;container-&gt;make('middleware.disable') === true;
+
+    $middleware = $shouldSkipMiddleware ? [] : $this-&gt;gatherRouteMiddleware($route);
+    //通过管道，发送$request,经过$middleware，再到then中的回调
+    return (new Pipeline($this-&gt;container))
+        -&gt;send($request)//发送请求
+        -&gt;through($middleware)//实现过滤
+        -&gt;then(function ($request) use ($route) {
+            return $this-&gt;prepareResponse(//处理返回结果
+                $request, $route-&gt;run()
+            );
+        });
+}
+
+/**
+ * Create a response instance from the given value.
+ * 通过给定值创建Response对象
+ * @param  \Symfony\Component\HttpFoundation\Request  $request
+ * @param  mixed  $response
+ * @return \Symfony\Component\HttpFoundation\Response
+ */
+public function prepareResponse($request, $response)
+{
+    return static::toResponse($request, $response);
+}
+
+/**
+ * Static version of prepareResponse.
+ *
+ * @param  \Symfony\Component\HttpFoundation\Request  $request
+ * @param  mixed  $response
+ * @return \Symfony\Component\HttpFoundation\Response
+ */
+public static function toResponse($request, $response)
+{
+    if ($response instanceof Responsable) {
+        $response = $response-&gt;toResponse($request);
+    }
+    // Psr规范中对服务端响应的定义
+    if ($response instanceof PsrResponseInterface) {
+        $response = (new HttpFoundationFactory)-&gt;createResponse($response);
+    // Laravel中对服务端JSON响应的定义
+    } elseif ($response instanceof Model &amp;&amp; $response-&gt;wasRecentlyCreated) {
+        $response = new JsonResponse($response, 201);
+    } elseif (! $response instanceof SymfonyResponse &amp;&amp;
+        ($response instanceof Arrayable ||
+            $response instanceof Jsonable ||
+            $response instanceof ArrayObject ||
+            $response instanceof JsonSerializable ||
+            is_array($response))) {
+        $response = new JsonResponse($response);
+    // Laravel中对普通的非JSON响应的定义
+    } elseif (! $response instanceof SymfonyResponse) {
+        $response = new Response($response, 200, ['Content-Type' =&gt; 'text/html']);
+    }
+
+    if ($response-&gt;getStatusCode() === Response::HTTP_NOT_MODIFIED) {
+        $response-&gt;setNotModified();
+    }
+    return $response-&gt;prepare($request);
+}
+
+</code></pre>
+<p>通过 prepareResponse中的逻辑可以看到，无论路由执行结果返回的是什么值最终都会被Laravel转换为成一个Response对象，而这些对象都是Symfony\Component\HttpFoundation\Response类或者其子类的对象。从这里也就能看出来跟Request一样Laravel的Response也是依赖Symfony框架的 HttpFoundation组件来实现的</p>
+<pre><code>Symfony\Component\HttpFoundation\Response
+public function __construct($content = '', $status = 200, array $headers = [])
+{
+   // 实例化响应头数据对象
+    $this-&gt;headers = new ResponseHeaderBag($headers);
+    $this-&gt;setContent($content);
+    $this-&gt;setStatusCode($status);
+    $this-&gt;setProtocolVersion('1.0');
+}    
+/**
+ * Set the content on the response.
+ * 設置响应内容
+ *
+ * @param  mixed  $content
+ * @return $this
+ */
+public function setContent($content)
+{
+    $this-&gt;original = $content;
+    ...
+    parent::setContent($content);
+    return $this;
+}
+</code></pre>
+<h4 id="设置response-headers">设置Response headers</h4>
+<p>生成Response对象后就要执行对象的 prepare方法了，该方法定义在 Symfony\Component\HttpFoundation\Resposne类中，其主要目的是对Response进行微调使其能够遵从HTTP/1.1协议（RFC 2616）,prepare里针对各种情况设置了相应的 response header 比如 Content-Type、 Content-Length等等这些常见的首部字段</p>
+<pre><code>/**
+ * Prepares the Response before it is sent to the client.
+ * 在响应被发送给客户端之前对其进行修订使其能遵从HTTP/1.1协议
+ *
+ * This method tweaks the Response to ensure that it is
+ * compliant with RFC 2616. Most of the changes are based on
+ * the Request that is &quot;associated&quot; with this Response.
+ *
+ * @return $this
+ */
+public function prepare(Request $request)
+{
+    $headers = $this-&gt;headers;
+    // 如果 HTTP 状态码是 100、101、204、304,则返回空，并移除 Content-Type，Content-Length
+    if ($this-&gt;isInformational() || $this-&gt;isEmpty()) {
+        $this-&gt;setContent(null);
+        $headers-&gt;remove('Content-Type');
+        $headers-&gt;remove('Content-Length');
+        // prevent PHP from sending the Content-Type header based on default_mimetype
+        ini_set('default_mimetype', '');
+    } else {
+        // Content-type based on the Request
+        // 根据请求的 _format 获取对应 mimeType，并设置 Content-Type
+        if (!$headers-&gt;has('Content-Type')) {
+            $format = $request-&gt;getRequestFormat(null);
+            if (null !== $format &amp;&amp; $mimeType = $request-&gt;getMimeType($format)) {
+                $headers-&gt;set('Content-Type', $mimeType);
+            }
+        }
+
+        // Fix Content-Type修复补充特殊
+        $charset = $this-&gt;charset ?: 'UTF-8';
+        if (!$headers-&gt;has('Content-Type')) {
+            $headers-&gt;set('Content-Type', 'text/html; charset='.$charset);
+        } elseif (0 === stripos($headers-&gt;get('Content-Type'), 'text/') &amp;&amp; false === stripos($headers-&gt;get('Content-Type'), 'charset')) {
+            // add the charset
+            $headers-&gt;set('Content-Type', $headers-&gt;get('Content-Type').'; charset='.$charset);
+        }
+
+        // Fix Content-Length
+        if ($headers-&gt;has('Transfer-Encoding')) {
+            $headers-&gt;remove('Content-Length');
+        }
+
+        if ($request-&gt;isMethod('HEAD')) {
+            // cf. RFC2616 14.13
+            $length = $headers-&gt;get('Content-Length');
+            $this-&gt;setContent(null);
+            if ($length) {
+                $headers-&gt;set('Content-Length', $length);
+            }
+        }
+    }
+
+    // Fix protocol SERVER_PROTOCO设置为 1.1
+    if ('HTTP/1.0' != $request-&gt;server-&gt;get('SERVER_PROTOCOL')) {
+        $this-&gt;setProtocolVersion('1.1');
+    }
+
+    // Check if we need to send extra expire info headers 1.0 的 HTTP 协议，响应头 Cache-Control:no-cache; 需要 pragma 和 expires
+    if ('1.0' == $this-&gt;getProtocolVersion() &amp;&amp; false !== strpos($headers-&gt;get('Cache-Control'), 'no-cache')) {
+        $headers-&gt;set('pragma', 'no-cache');
+        $headers-&gt;set('expires', -1);
+    }
+
+    $this-&gt;ensureIEOverSSLCompatibility($request);
+
+    if ($request-&gt;isSecure()) {
+        foreach ($headers-&gt;getCookies() as $cookie) {
+            $cookie-&gt;setSecureDefault(true);
+        }
+    }
+
+    return $this;
+}
+</code></pre>
+<h4 id="发送response">发送Response</h4>
+<p>创建并设置完Response后它会流经路由和框架中间件的后置操作，在中间件的后置操作里一般都是对Response进行进一步加工，最后程序流回到Http Kernel那里， Http Kernel会把Response发送给客户端</p>
+<pre><code>// 入口文件public/index.php
+$kernel = $app-&gt;make(Illuminate\Contracts\Http\Kernel::class);
+$response = $kernel-&gt;handle(
+    $request = Illuminate\Http\Request::capture()
+);
+$response-&gt;send();
+$kernel-&gt;terminate($request, $response);
+// Symfony\Component\HttpFoundation\Resposne
+public function send()
+{
+    $this-&gt;sendHeaders();
+    $this-&gt;sendContent();
+    if (\function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } elseif (!\in_array(\PHP_SAPI, ['cli', 'phpdbg'], true)) {
+        static::closeOutputBuffers(0, true);
+    }
+    return $this;
+}
+</code></pre>
+<p>send响应后Http Kernel会执行 terminate方法调用terminate中间件里的 terminate方法，最后执行应用的 termiate方法来结束整个应用生命周期(从接收请求开始到返回响应结束)</p>
+<h3 id="response使用实例">response使用实例</h3>
+<h4 id="创建基本响应">创建基本响应</h4>
+<pre><code>//字符串 &amp; 数组
+Route::get('/', function () {
+    return 'Hello World';
+});
+Route::get('/', function () {
+    return ['a', 'b', 'c'];
+});
+
+//Response 对象
+Route::get('home', function () {
+    return response('Hello World', 200)
+                  -&gt;header('Content-Type', 'text/plain');
+});
+
+// 添加响应头、cookie，中间件
+Route::middleware('cache.headers:public;max_age=2628000;etag')-&gt;get('/test', function () {
+    return response('hello world')
+        -&gt;withHeaders([
+            'Content-Type' =&gt; 'image/jpg',//设置响应头
+            'X-Header-One' =&gt; 'Header Value',
+        ])-&gt;cookie('name', 'value', $minutes);//添加cookie
+});
+</code></pre>
+<h4 id="重定向">重定向</h4>
+<pre><code>//重定向响应是 Illuminate\Http\RedirectResponse 类的实例
+Route::get('redirectTest', function () {
+    //重定向到指定网址
+    return redirect('/test/request');
+    //重定向到指定路由
+    return redirect()-&gt;route('login');
+    //表单重新返回到提交前的状态
+    return back()-&gt;withInput();
+    //重定向到指定控制器
+    return redirect()-&gt;action('HomeController@index');
+    //
+});
+</code></pre>
+<h4 id="其他响应类型">其他响应类型</h4>
+<pre><code>// 视图
+Route::get('view', function(){
+    return response()
+        -&gt;view('hello', ['data' =&gt; 'hello world'], 200)
+        -&gt;header('Content-Type', 'text/html');
+});
+// Json
+Route::get('json',function(){
+    return response()-&gt;json([
+        'a' =&gt; 'hello',
+        'b' =&gt; 'world'
+    ]);
+});
+// 文件下载
+return response()-&gt;download($pathToFile);
+// 文件响应
+return response()-&gt;file($pathToFile);
+</code></pre>
+<p>常见HTTP响应码</p>
+<pre><code>1xx 消息——请求已被服务器接收，继续处理
+    100(继续)
+    101(切换协议)
+    102(处理)
+    
+2xx 成功——请求已成功被服务器接收、理解、并接受
+    200(成功)
+    201(已创建)
+    202(已接受)
+    203(非授权信息)
+    204(无内容)
+    205(重置内容)
+    206(部分内容)
+    207(多重状态)
+    
+3xx 重定向——需要后续操作才能完成这一请求
+    300(多种选择)
+    301(永久移动)
+    302(临时移动) 
+    303(查看其他位置) 【 303和307是HTTP1.1新加的服务器响应文档的状态码，对HTTP1.0中的302状态码的细化，主要用在对非GET、HEAD方法的响应上，较少使用】
+    304(未修改)
+    305(使用代理)
+    307(临时重定向)【仅在POST方法的重定向上有用处】
+    
+4xx 请求错误——请求含有词法错误或者无法被执行
+    400(错误请求)
+    401(未授权)
+    403(已禁止)
+    404(未找到)
+    405(方法禁用)
+    449(重试)
+
+5xx 服务器错误——服务器在处理某个正确请求时发生错误
+    500(服务器内部错误)
+    501(尚未实施)
+    502(错误网关)
+    503(服务不可用)
+    504(网关超时)
+    505(HTTP 版本不受支持)
+</code></pre>
+]]></content>
+    </entry>
     <entry>
         <title type="html"><![CDATA[Laravel学习-请求类 Request]]></title>
         <id>https://xiaoxie110.github.io/laravel-xue-xi-qing-qiu-lei-request/</id>
